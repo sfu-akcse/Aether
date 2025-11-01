@@ -1,0 +1,3 @@
+/home/tommy/project/Aether/build/CMakeFiles/aether.dir
+/home/tommy/project/Aether/build/CMakeFiles/edit_cache.dir
+/home/tommy/project/Aether/build/CMakeFiles/rebuild_cache.dir
