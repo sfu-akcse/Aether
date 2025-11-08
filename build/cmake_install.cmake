@@ -1,4 +1,4 @@
-# Install script for directory: /home/tommy/project/Aether
+# Install script for directory: /home/tommy3266/aether/Aether
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/tommy/project/Aether/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/tommy3266/aether/Aether/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

@@ -1,4 +1,6 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/aether.dir/src/logging/log.c.o"
+  "CMakeFiles/aether.dir/src/logging/log.c.o.d"
   "CMakeFiles/aether.dir/src/main.c.o"
   "CMakeFiles/aether.dir/src/main.c.o.d"
   "aether"

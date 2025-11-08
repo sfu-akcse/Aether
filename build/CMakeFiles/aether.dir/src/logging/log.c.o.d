@@ -1,5 +1,6 @@
-CMakeFiles/aether.dir/src/main.c.o: \
- /home/tommy3266/aether/Aether/src/main.c /usr/include/stdc-predef.h \
+CMakeFiles/aether.dir/src/logging/log.c.o: \
+ /home/tommy3266/aether/Aether/src/logging/log.c \
+ /usr/include/stdc-predef.h \
  /home/tommy3266/aether/Aether/include/logging/log.h /usr/include/stdio.h \
  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
  /usr/include/features.h /usr/include/features-time64.h \
