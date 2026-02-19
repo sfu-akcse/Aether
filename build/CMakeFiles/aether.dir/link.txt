@@ -1,1 +1,0 @@
-/usr/bin/cc -fsanitize=address CMakeFiles/aether.dir/src/main.c.o CMakeFiles/aether.dir/src/logging/log.c.o -o aether 
