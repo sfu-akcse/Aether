@@ -1,43 +1,45 @@
 # Aether
 
-## project tool
+Aether is the project
 
-We will be using [log.c](https://github.com/rxi/log.c) for logging purposes.
+## Requirements
 
-```c
-log_trace(const char *fmt, ...);
-log_debug(const char *fmt, ...);
-log_info(const char *fmt, ...);
-log_warn(const char *fmt, ...);
-log_error(const char *fmt, ...);
-log_fatal(const char *fmt, ...);
+This project requires the miniconda and Python version 3.11
+
+## How to setup
+
+```bash
+conda install mamba -c conda-forge
+
+# Setup conda environment
+conda create -n ros2-robot-arm python=3.11 numpy=1.26.4
+
+conda activate ros2-robot-arm
+
+conda config --env --add channels conda-forge
+conda config --env --add channels robostack-staging
+conda config --env --remove channels defaults
+conda install ros-humble-desktop-full
+conda install compilers cmake pkg-config make ninja colcon-common-extensions catkin_tools rosdep
+
+# Restart the conda environment
+conda deactivate
+conda activate ros2-robot-arm
+
+# Testing (Rviz2 will be deployed if the installation is complete)
+rviz2
 ```
 
-Each functions takes printf format string
-```c
-log_trace("Hello %s", "world")
-```
+## How to run the project
 
-Example code:
-```c
-#include "log.h"
-#include <stdio.h>
+```bash
+# Activate the conda environment
+conda activate ros2-robot-arm
 
-int main() {
-  int size = 5;
-  int numbers[size];
-  int sum = 0;
-  log_set_level(LOG_TRACE);
+# Run the script that runs Gazebo backend
+./launch_gazebo.sh
 
-  for (int i = 0; i < size; ++i) {
-    log_trace("Loop iteration i = %d", i);
-    numbers[i] = i;
-    sum += numbers[i];
-    log_info("Current sum is : %d", sum);
-  }
-  log_debug("Final sum is: %d", sum);
-
-  printf("The sum is: %d", sum);
-  return 0;
-}
+# Open another terminal but not in conda environment
+# Run the frontend
+gz sim -g
 ```
