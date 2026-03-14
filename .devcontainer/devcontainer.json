@@ -1,0 +1,56 @@
+{
+  "name": "Aether ROS Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+
+  // Keep runtime args macOS-safe. Host webcam input should be streamed from host OS.
+  "runArgs": [
+    "--ipc=host"
+  ],
+
+  // Browser GUI access for fully containerized Gazebo via noVNC.
+  "forwardPorts": [6080, 5901],
+  "portsAttributes": {
+    "6080": {
+      "label": "Gazebo noVNC",
+      "onAutoForward": "notify"
+    },
+    "5901": {
+      "label": "Gazebo VNC"
+    }
+  },
+
+  // Improve GUI reliability for Gazebo/RViz in containerized X11 setups.
+  "containerEnv": {
+    "XDG_RUNTIME_DIR": "/tmp/runtime-root",
+    "LIBGL_ALWAYS_SOFTWARE": "1",
+    "QT_X11_NO_MITSHM": "1"
+  },
+
+  // Ensure XDG runtime dir exists with expected permissions.
+  "postStartCommand": "mkdir -p /tmp/runtime-root && chmod 700 /tmp/runtime-root",
+
+  "customizations": {
+    "vscode": {
+      // Automatically install these extensions for anyone opening the project
+      "extensions": [
+        "ms-python.python",
+        "ms-iot.vscode-ros",
+        "ms-vscode.cpptools",
+        "twxs.cmake",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  },
+
+  // Mount the current workspace directory into the container
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "workspaceFolder": "/workspace",
+
+  // Run as root (standard for basic dev containers, adjust if you need a specific user)
+  "remoteUser": "root"
+}
