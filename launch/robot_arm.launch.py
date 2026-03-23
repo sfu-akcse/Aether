@@ -31,10 +31,12 @@ def generate_launch_description():
 
     conda_prefix = os.environ.get('CONDA_PREFIX', '')
 
-    # Environment variables for Ignition Gazebo
-    ign_env = {
-        'IGN_GAZEBO_SYSTEM_PLUGIN_PATH': os.path.join(conda_prefix, 'lib', 'ign-gazebo-6', 'plugins'),
-    }
+    # Only inject plugin path when running from the conda distribution.
+    ign_env = {}
+    if conda_prefix:
+        ign_env['IGN_GAZEBO_SYSTEM_PLUGIN_PATH'] = os.path.join(
+            conda_prefix, 'lib', 'ign-gazebo-6', 'plugins'
+        )
 
     return LaunchDescription([
         # 1. Start Ignition Gazebo server (headless - required on macOS)
