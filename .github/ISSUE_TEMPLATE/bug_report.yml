@@ -1,0 +1,79 @@
+name: Bug Report
+description: File a bug report to help us improve the robot arm control system.
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! Please provide as much detail as possible about the issue with the computer vision node, ROS 2 communication, Gazebo simulation, or the physical hardware.
+  
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+      
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Provide a step-by-step guide on how to reproduce the issue.
+      placeholder: |
+        1. Launch the dev container...
+        2. Run ROS 2 command '...'
+        3. Trigger the webcam by '...'
+        4. See error...
+    validations:
+      required: true
+      
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen (e.g., correct IK XYZ coordinates, arm moving in simulation).
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Host Operating System
+      description: What OS is running on your physical machine?
+      options:
+        - Ubuntu / Linux
+        - Windows 11 (WSL2)
+        - macOS
+    validations:
+      required: true
+
+  - type: dropdown
+    id: container
+    attributes:
+      label: Dev Container
+      description: Are you running this inside the provided VS Code Dev Container?
+      options:
+        - Yes
+        - No
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: components
+    attributes:
+      label: Hardware & Environment
+      description: Check all components that are actively involved in this bug.
+      options:
+        - label: Webcam / Computer Vision Node
+        - label: Inverse Kinematics Node
+        - label: Gazebo Simulation
+        - label: Physical Robot Arm (Socket Comm)
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Error Output
+      description: Paste any ROS 2 terminal output, build errors (`colcon build`), or OpenCV crashes here.
+      render: shell

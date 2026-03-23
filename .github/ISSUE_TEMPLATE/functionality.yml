@@ -1,0 +1,41 @@
+name: Functionality Request
+description: Request a new feature or improvement to enhance the robot arm control system.
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What functionality do we need for this project?
+      description: A clear and concise description of the new feature or improvement you are requesting.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: what area of the project would this functionality impact?
+      description: Select the area of the project that would be impacted by this new functionality.
+      options:
+        - Computer Vision Node
+        - ROS 2 Communication
+        - Gazebo Simulation
+        - Socket Communication
+        - Firmware
+        - Mechanical Design
+        - Electrical Design
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected behavior
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expect to happen with this new functionality (e.g., improved accuracy in IK calculations, smoother arm movements in simulation).
+    
+  - type: textarea
+    id: sources
+    attributes:
+      label: Additional Information
+      description: Provide any additional information, references, or resources that may help us understand and implement this functionality (e.g., links to relevant research papers, similar implementations in other projects).
