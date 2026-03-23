@@ -29,7 +29,7 @@ body:
       required: true
 
   - type: textarea
-    id: expected behavior
+    id: expected_behavior
     attributes:
       label: Expected Behavior
       description: A clear and concise description of what you expect to happen with this new functionality (e.g., improved accuracy in IK calculations, smoother arm movements in simulation).
