@@ -7,7 +7,7 @@
 - [ ] ROS 2 Communication
 - [ ] Gazebo Simulation
 - [ ] Socket Communication
-- [ ] Firmare
+- [ ] Firmware
 - [ ] Mechanical Design
 - [ ] Electrical Design
 - [ ] Bug fix (non-breaking change which fixes an issue)

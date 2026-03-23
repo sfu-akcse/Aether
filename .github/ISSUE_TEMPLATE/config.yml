@@ -1,0 +1,5 @@
+blank_issues_enabled: false  # Forces users to choose a template
+contact_links:
+  - name: Robot Arm Documentation
+    url: https://your-docs-url.com
+    about: Please read the docs before opening an issue.
