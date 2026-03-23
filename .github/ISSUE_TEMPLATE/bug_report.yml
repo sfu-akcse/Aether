@@ -55,8 +55,8 @@ body:
       label: Dev Container
       description: Are you running this inside the provided VS Code Dev Container?
       options:
-        - Yes
-        - No
+        - "Yes"
+        - "No"
     validations:
       required: true
 
