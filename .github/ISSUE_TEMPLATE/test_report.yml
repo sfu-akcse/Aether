@@ -1,0 +1,30 @@
+name: Test Report
+description: Create a test report to document the results of testing the robot arm control system.
+title: "[Test]: "
+labels: ["test", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please provide detailed information about the tests you performed on the robot arm control system, including the test setup, procedures, and results.
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Programming Language
+      description: Select the programming language needs to be used for the test (e.g., Python, C++).
+      options:
+        - Python
+        - C++
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Test procedures and Results
+      description: Provide the test behaviour, expected results, and any relevant details about the test setup and procedures.
+    validations:
+      required: true
+  
