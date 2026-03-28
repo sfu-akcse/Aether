@@ -1,0 +1,12 @@
+name: 3D Design
+description: 3D Design File
+title: "[3D Design]: "
+labels: ["mechanical"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Provide general description of the design.
+      description: A clear and concise description of the design.
+    validations:
+      required: true
