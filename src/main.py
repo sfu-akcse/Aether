@@ -10,6 +10,10 @@ import mediapipe as mp
 import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+from aether_logger import setup_logger
+
+
+logger = setup_logger('aether-system.log', 'AETHER.VISION')
 
 # Hand Connections
 HAND_CONNECTIONS = [
@@ -20,6 +24,13 @@ HAND_CONNECTIONS = [
     (13, 17), (17, 18), (18, 19), (19, 20), # Pinky
     (0, 17),                                # Palm to Pinky Base
 ]
+
+
+def is_headless_environment():
+    # macOS native OpenCV windows do not require DISPLAY, unlike Linux/X11 setups.
+    if os.name == 'posix' and hasattr(os, 'uname') and os.uname().sysname == 'Darwin':
+        return False
+    return not os.getenv('DISPLAY')
 
 
 def resolve_camera_source():
@@ -45,14 +56,14 @@ def open_camera_capture(camera_source):
     for backend_name, backend in candidates:
         cap = cv2.VideoCapture(camera_source, backend)
         if cap.isOpened():
-            print(f"Opened camera source with backend={backend_name}")
+            logger.info("Opened camera source with backend=%s", backend_name)
             return cap
         cap.release()
 
     # Final fallback for environments where backend argument is ignored.
     cap = cv2.VideoCapture(camera_source)
     if cap.isOpened():
-        print("Opened camera source with backend=DEFAULT")
+        logger.info("Opened camera source with backend=DEFAULT")
         return cap
 
     return cap
@@ -106,7 +117,7 @@ class LatestFrameReader:
     def _warn_throttled(self, message):
         now = time.monotonic()
         if now - self._last_warn_at > 2.0:
-            print(message)
+            logger.warning(message)
             self._last_warn_at = now
 
     def _run_mjpeg_url(self):
@@ -184,115 +195,150 @@ def draw_hand_landmarks(image, detection_result):
     return image
 
 
-# Model path
-model_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'hand_landmarker.task')
+def main():
+    logger.info("Starting Aether vision pipeline.")
 
-# Reset MediaPipe HandLandmarker (Tasks API)
-# https://ai.google.dev/mediapipe/solutions/vision/hand_landmarker
-base_options = python.BaseOptions(model_asset_path=model_path)
-options = vision.HandLandmarkerOptions(
-    base_options=base_options,
-    num_hands=2,
-    min_hand_detection_confidence=0.5,
-    min_hand_presence_confidence=0.5,
-    min_tracking_confidence=0.5,
-    running_mode=vision.RunningMode.VIDEO,
-)
-detector = vision.HandLandmarker.create_from_options(options)
+    model_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'hand_landmarker.task')
+    detector = None
+    reader = None
 
-# Start video capture
-camera_source = resolve_camera_source()
-cap = None
+    try:
+        # Reset MediaPipe HandLandmarker (Tasks API)
+        # https://ai.google.dev/mediapipe/solutions/vision/hand_landmarker
+        base_options = python.BaseOptions(model_asset_path=model_path)
+        options = vision.HandLandmarkerOptions(
+            base_options=base_options,
+            num_hands=2,
+            min_hand_detection_confidence=0.5,
+            min_hand_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
+            running_mode=vision.RunningMode.VIDEO,
+        )
+        detector = vision.HandLandmarker.create_from_options(options)
+        logger.info("MediaPipe HandLandmarker initialized with model=%s", model_path)
 
-if isinstance(camera_source, int):
-    cap = open_camera_capture(camera_source)
+        camera_source = resolve_camera_source()
+        cap = None
+        headless = is_headless_environment()
 
-if isinstance(camera_source, int) and not cap.isOpened():
-    if isinstance(camera_source, int):
-        device_path = f"/dev/video{camera_source}"
-        visible_devices = ", ".join(sorted(glob.glob('/dev/video*'))) or "none"
+        if headless:
+            logger.info("No DISPLAY detected. Running in headless mode without OpenCV windows.")
 
-        if not os.path.exists(device_path):
+        if isinstance(camera_source, int):
+            cap = open_camera_capture(camera_source)
+
+        if isinstance(camera_source, int) and not cap.isOpened():
+            device_path = f"/dev/video{camera_source}"
+            visible_devices = ", ".join(sorted(glob.glob('/dev/video*'))) or "none"
+
+            if not os.path.exists(device_path):
+                raise RuntimeError(
+                    "Failed to open camera source: "
+                    f"{camera_source}. "
+                    f"{device_path} is not available in this container. "
+                    f"Visible camera devices: {visible_devices}. "
+                    "If you are running in a Linux devcontainer, pass through your camera "
+                    "with run args like `--device=/dev/video0:/dev/video0` "
+                    "(optionally `--group-add=video`) and rebuild the container, "
+                    "or use a stream URL for CAMERA_SOURCE."
+                )
+
             raise RuntimeError(
                 "Failed to open camera source: "
                 f"{camera_source}. "
-                f"{device_path} is not available in this container. "
-                f"Visible camera devices: {visible_devices}. "
-                "If you are running in a Linux devcontainer, pass through your camera "
-                "with run args like `--device=/dev/video0:/dev/video0` "
-                "(optionally `--group-add=video`) and rebuild the container, "
-                "or use a stream URL for CAMERA_SOURCE."
+                "Set CAMERA_SOURCE to an index (e.g. 0) or stream URL "
+                "(e.g. http://host.docker.internal:8080/video.mjpg)."
             )
 
-    raise RuntimeError(
-        "Failed to open camera source: "
-        f"{camera_source}. "
-        "Set CAMERA_SOURCE to an index (e.g. 0) or stream URL "
-        "(e.g. http://host.docker.internal:8080/video.mjpg)."
-    )
+        logger.info("Using CAMERA_SOURCE=%s", camera_source)
+        reader = LatestFrameReader(camera_source, cap=cap)
+        reader.start()
+        logger.info("Frame reader started.")
 
-print(f"Using CAMERA_SOURCE={camera_source}")
-reader = LatestFrameReader(camera_source, cap=cap)
-reader.start()
-
-timestamp_ms = 0
-black_frame_count = 0
-waiting_warned = False
-placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
-
-while True:
-    image, latest_ts = reader.get_latest()
-
-    if image is None:
-        status = placeholder.copy()
-        cv2.putText(status, 'Waiting for camera frames...', (30, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
-        cv2.imshow('MediaPipe Hands', status)
-        if cv2.waitKey(1) & 0xFF == 27:
-            break
-        continue
-
-    # Surface stale stream status without blocking UI interaction.
-    frame_age = time.monotonic() - latest_ts
-    if frame_age > 1.0 and not waiting_warned:
-        print('Warning: frame stream appears stale (>1s).')
-        waiting_warned = True
-    if frame_age <= 1.0:
+        timestamp_ms = 0
+        black_frame_count = 0
         waiting_warned = False
+        placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
 
-    # Detect persistent blank stream frames and provide actionable guidance.
-    if image is not None and image.size > 0:
-        if float(image.mean()) < 2.0:
-            black_frame_count += 1
-        else:
-            black_frame_count = 0
+        while True:
+            image, latest_ts = reader.get_latest()
 
-    if black_frame_count == 45:
-        print(
-            "Warning: received many near-black frames from CAMERA_SOURCE. "
-            "If using host stream, verify host preview at http://localhost:8080/ "
-            "and try another host camera index."
-        )
+            if image is None:
+                if not headless:
+                    status = placeholder.copy()
+                    cv2.putText(status, 'Waiting for camera frames...', (30, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+                    cv2.imshow('MediaPipe Hands', status)
+                    if cv2.waitKey(1) & 0xFF == 27:
+                        logger.info("ESC pressed while waiting for camera frames.")
+                        break
+                else:
+                    time.sleep(0.01)
+                continue
 
-    # For local cameras mirror the image; host-side stream is already mirrored.
-    if isinstance(camera_source, int):
-        image = cv2.flip(image, 1)
+            # Surface stale stream status without blocking UI interaction.
+            frame_age = time.monotonic() - latest_ts
+            if frame_age > 1.0 and not waiting_warned:
+                logger.warning('Frame stream appears stale (>1s).')
+                waiting_warned = True
+            if frame_age <= 1.0:
+                waiting_warned = False
 
-    # BGR to RGB conversion for MediaPipe
-    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
+            # Detect persistent blank stream frames and provide actionable guidance.
+            if image.size > 0:
+                if float(image.mean()) < 2.0:
+                    black_frame_count += 1
+                else:
+                    black_frame_count = 0
 
-    # Hand detection timestamp must be strictly increasing.
-    now_ms = int(time.monotonic() * 1000)
-    timestamp_ms = max(timestamp_ms + 1, now_ms)
-    detection_result = detector.detect_for_video(mp_image, timestamp_ms)
+            if black_frame_count == 45:
+                logger.warning(
+                    "Received many near-black frames from CAMERA_SOURCE. "
+                    "If using host stream, verify host preview at http://localhost:8080/ "
+                    "and try another host camera index."
+                )
 
-    # Draw landmarks on the original image
-    image = draw_hand_landmarks(image, detection_result)
+            # For local cameras mirror the image; host-side stream is already mirrored.
+            if isinstance(camera_source, int):
+                image = cv2.flip(image, 1)
 
-    cv2.imshow('MediaPipe Hands', image)
-    if cv2.waitKey(1) & 0xFF == 27:  # Exit on 'ESC' key
-        break
+            # BGR to RGB conversion for MediaPipe
+            rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
 
-reader.stop()
-cv2.destroyAllWindows()
-detector.close()
+            # Hand detection timestamp must be strictly increasing.
+            now_ms = int(time.monotonic() * 1000)
+            timestamp_ms = max(timestamp_ms + 1, now_ms)
+            detection_result = detector.detect_for_video(mp_image, timestamp_ms)
+
+            # Draw landmarks on the original image
+            image = draw_hand_landmarks(image, detection_result)
+
+            if not headless:
+                cv2.imshow('MediaPipe Hands', image)
+                if cv2.waitKey(1) & 0xFF == 27:  # Exit on 'ESC' key
+                    logger.info("ESC pressed. Exiting vision loop.")
+                    break
+
+        logger.info("Vision loop exited normally.")
+        return 0
+    except KeyboardInterrupt:
+        logger.info("Keyboard interrupt received. Shutting down vision pipeline.")
+        return 0
+    except Exception:
+        logger.exception("Vision pipeline terminated due to an unexpected error.")
+        return 1
+    finally:
+        if reader is not None:
+            reader.stop()
+            logger.info("Frame reader stopped.")
+        if detector is not None:
+            detector.close()
+            logger.info("HandLandmarker closed.")
+        if not is_headless_environment():
+            cv2.destroyAllWindows()
+            logger.info("OpenCV windows destroyed.")
+        logger.info("Aether vision pipeline shutdown complete.")
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
