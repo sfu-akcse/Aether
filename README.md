@@ -58,6 +58,8 @@ export CAMERA_SOURCE=http://host.docker.internal:8080/video.mjpg
 python3 src/main.py
 ```
 
+Runtime logs are written to `logs/aether-system.log` and also mirrored to the console.
+
 ## Webcam on Linux with devcontainer
 
 On Linux, `CAMERA_SOURCE=0` only works if the camera device is passed into the
