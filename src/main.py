@@ -10,6 +10,8 @@ import mediapipe as mp
 import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+import tkinter as tk
+from PIL import Image, ImageTk
 
 # Hand Connections
 HAND_CONNECTIONS = [
@@ -238,61 +240,124 @@ reader.start()
 timestamp_ms = 0
 black_frame_count = 0
 waiting_warned = False
-placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
+# placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
 
-while True:
-    image, latest_ts = reader.get_latest()
+display_lock = threading.Lock()
+latest_display_frame = None
+shutdown_event = threading.Event()
 
-    if image is None:
-        status = placeholder.copy()
-        cv2.putText(status, 'Waiting for camera frames...', (30, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
-        cv2.imshow('MediaPipe Hands', status)
-        if cv2.waitKey(1) & 0xFF == 27:
-            break
-        continue
+def processing_loop():
+    global latest_display_frame
+    global timestamp_ms, black_frame_count, waiting_warned
+ 
+    # continuously read the newest frame, run MediaPipe on it, draw landmarks, and save the processed frame for the UI
+    while not shutdown_event.is_set():
+        image, latest_ts = reader.get_latest()
+ 
+        if image is None:
+            time.sleep(0.01)
+            continue
+        
+        # check whether the camera stream is delayed or stale
+        frame_age = time.monotonic() - latest_ts
+        if frame_age > 1.0 and not waiting_warned:
+            print('Warning: frame stream appears stale (>1s).')
+            waiting_warned = True
+        if frame_age <= 1.0:
+            waiting_warned = False
+        
+        # count repeated black frames to help detect blank camera output
+        if image is not None and image.size > 0:
+            if float(image.mean()) < 2.0:
+                black_frame_count += 1
+            else:
+                black_frame_count = 0
 
-    # Surface stale stream status without blocking UI interaction.
-    frame_age = time.monotonic() - latest_ts
-    if frame_age > 1.0 and not waiting_warned:
-        print('Warning: frame stream appears stale (>1s).')
-        waiting_warned = True
-    if frame_age <= 1.0:
-        waiting_warned = False
-
-    # Detect persistent blank stream frames and provide actionable guidance.
-    if image is not None and image.size > 0:
-        if float(image.mean()) < 2.0:
-            black_frame_count += 1
-        else:
-            black_frame_count = 0
-
-    if black_frame_count == 45:
-        print(
-            "Warning: received many near-black frames from CAMERA_SOURCE. "
-            "If using host stream, verify host preview at http://localhost:8080/ "
-            "and try another host camera index."
-        )
-
-    # For local cameras mirror the image; host-side stream is already mirrored.
-    if isinstance(camera_source, int):
-        image = cv2.flip(image, 1)
-
-    # BGR to RGB conversion for MediaPipe
-    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
-
-    # Hand detection timestamp must be strictly increasing.
-    now_ms = int(time.monotonic() * 1000)
-    timestamp_ms = max(timestamp_ms + 1, now_ms)
-    detection_result = detector.detect_for_video(mp_image, timestamp_ms)
-
-    # Draw landmarks on the original image
-    image = draw_hand_landmarks(image, detection_result)
-
-    cv2.imshow('MediaPipe Hands', image)
-    if cv2.waitKey(1) & 0xFF == 27:  # Exit on 'ESC' key
-        break
-
-reader.stop()
-cv2.destroyAllWindows()
-detector.close()
+        # print a warning if many black frames appear in a row
+        if black_frame_count == 45:
+            print(
+                "Warning: received many near-black frames from CAMERA_SOURCE. "
+                "If using host stream, verify host preview at http://localhost:8080/ "
+                "and try another host camera index."
+            )
+ 
+        if isinstance(camera_source, int):
+            image = cv2.flip(image, 1)
+ 
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
+ 
+        now_ms = int(time.monotonic() * 1000)
+        timestamp_ms = max(timestamp_ms + 1, now_ms)
+        detection_result = detector.detect_for_video(mp_image, timestamp_ms)
+ 
+        image = draw_hand_landmarks(image, detection_result)
+ 
+        # save the processed frame so Tkinter can display it
+        with display_lock:
+            latest_display_frame = image
+ 
+ 
+def wait_for_first_processed_frame(timeout_s=15.0):
+    # wait until at least one processed frame is ready before opening the UI
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline and not shutdown_event.is_set():
+        with display_lock:
+            if latest_display_frame is not None:
+                return True
+        time.sleep(0.01)
+    return False
+ 
+ 
+def run_tkinter_ui():
+    # do not open the window until the first processed frame is ready
+    if not wait_for_first_processed_frame(timeout_s=15.0):
+        raise RuntimeError("Timed out waiting for first processed frame.")
+ 
+    root = tk.Tk()
+    root.title("MediaPipe Hands")
+    root.configure(bg="black")
+ 
+    image_label = tk.Label(root, bg="black", borderwidth=0, highlightthickness=0)
+    image_label.pack()
+ 
+    # close the app when the window close button or ESC key is used
+    def on_close(event=None):
+        shutdown_event.set()
+        if root.winfo_exists():
+            root.destroy()
+    
+    root.protocol("WM_DELETE_WINDOW", on_close)
+    root.bind("<Escape>", on_close)
+ 
+    def update_frame():
+        if shutdown_event.is_set():
+            if root.winfo_exists():
+                root.destroy()
+            return
+ 
+        with display_lock:
+            frame = None if latest_display_frame is None else latest_display_frame.copy()
+ 
+        if frame is not None:
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(rgb)
+            tk_image = ImageTk.PhotoImage(image=pil_image)
+            image_label.configure(image=tk_image)
+            image_label.image = tk_image
+ 
+        root.after(15, update_frame)
+ 
+    update_frame()
+    root.mainloop()
+ 
+ 
+worker = threading.Thread(target=processing_loop, daemon=True)
+worker.start()
+ 
+try:
+    run_tkinter_ui()
+finally:
+    shutdown_event.set()
+    reader.stop()
+    detector.close()
