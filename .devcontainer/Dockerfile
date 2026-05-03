@@ -31,6 +31,9 @@ RUN apt-get update && apt-get install -y \
     # ROS 2 hardware packages
     ros-humble-ros2-control \
     ros-humble-ros2-controllers \
+    # Testing dependencies
+    libgtest-dev \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python packages for Computer Vision and ML
