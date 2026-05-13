@@ -1,18 +1,49 @@
-# Aether
+<h4 align="center">
+    <br> <img src="public/icon.png" width="150">
+</h4>
+
+<h4 align="center">
+    Aether: Robot Arm Controller Project
+</h4>
+
+<p align="center">
+    <a href="#description">Description</a> •
+    <a href="#team-members">Team</a> •
+    <a href="#how-to-run-the-project">Set up</a> •
+	<a href="#Acknowledgement">Acknowledgement</a>
+</p>
+
+## Description
 
 Aether is the project that makes users control the physical robot arm with laptop webcam and no additional devices. 
 
-This project contains two sections which are software and mechanical section. 
+This project contains three engineering parts: 
+- **Software**
+- **Firmware**
+- **Mechanical**
 
-Software section handles computer vision using OpenCV and Mediapipe, robot arm simulation using ROS2, and the socket communication with the physical robot arm.
+This repository is primarily developed and maintained by the Software Team of the Aether Project.
 
-Mechanical section handles the design and the control of the robot arm. 
+The project has three main components:
+- **Hand detection** — hand location and grabbing gesture detection using OpenCV and MediaPipe
+- **Robot arm simulation** — ROS2-based simulation using Gazebo, rendered in the browser via noVNC
+- **Socket communication** — real-time communication between the laptop and the Raspberry Pi robot arm
 
-All the process will be documented and published through the Docusaurus documentation system.
+Development runs inside a ROS2 Dev Container. However, some programs (such as the computer vision pipeline) must run on the host OS to access the laptop webcam.
 
-## How to setup
+## Team Members
 
-This project will use ROS2 Dev Container for the development environment but this project will require to run programs through host Operating Systems since the project requires to use Computer Vision through laptop webcam.
+- Software Team:
+	- Software Team Co-lead: Tommy Oh [SFU] [@TommyOh0428](https://github.com/TommyOh0428)
+	- Software Team Co-lead: Kwanghyuk Ryu [SFU] [@kwanghyukryu](https://github.com/kwanghyukryu)
+	- Sofware Team Member: Jooyoung Lee [SFU] [@jylee2033](https://github.com/jylee2033)
+	- Software Team Member: Yujun Song [SFU] [@Pinkbear20056](https://github.com/Pinkbear20056)
+	- Software Team Member: Eric Kim [SFU]
+	- Software Team Member: Yoobeen Hong [UBC]
+- Mechanical Team:
+	- Mechanical Team Co-lead: Vincent Hong [SFU] [@Vincent-Elec](https://github.com/Vincent-Elec)
+	- Mechanical Team Co-lead: Sungmin Lee [SFU] [@
+S-ngminL-e](https://github.com/S-ngminL-e)
 
 ## How to run the project
 
@@ -133,3 +164,11 @@ Run this script inside the Dev Container.
 # Run the Gazebo GUI through browser using noVNC
 ./scripts/run_gazebo_gui.sh
 ```
+
+## Acknowledgement
+
+This project initiated by [@Tommy Oh](https://github.com/TommyOh0428) and Vincent Hong of [@SFU AKCSE](https://github.com/sfu-akcse)
+
+Joint Collaboration Project with SFU and UBC AKCSE.
+
+Copyright to [@SFU AKCSE](https://github.com/sfu-akcse)
