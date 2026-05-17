@@ -194,6 +194,49 @@ def draw_hand_landmarks(image, detection_result):
 
     return image
 
+# 화면 중심을 흰 점으로 표시
+# 이동하는 손의 중심을 점으로 표시
+# 아래에 그 손의 중심인 점을 주는 좌표가 필요함. 
+# https://shahinur.com/en/hand-joint-detection-using-opencv-and-mediapipe/
+# 손에 있는 점과 함께 중심기준 손의 좌표 표시하기
+# 2-5번째 손가락은 아래서 2번째 점, 엄지는 아래서 3번째 점, 그리고 맨아래 손목의 점의 평균을 내서 손바닥의 중심으로 파란색 점을 표시
+# base(0,0)을 기준으로 파랑색 점의 좌표를 아래 글자에 표시하기 제목은 xy_coordinate
+def return_xy_coordinates(image, detection_result):
+    if not detection_result.hand_landmarks:
+        return image
+    
+    h, w, _ = image.shape
+
+    # draw the center point
+    screen_center_x = w // 2
+    screen_center_y = h // 2
+    cv2.circle(image, (screen_center_x, screen_center_y), 8, (255, 255, 255), -1)
+
+    # 손 좌표
+    for hand_landmarks in detection_result.hand_landmarks:
+        hand_indices = [0, 2, 6, 10, 14, 18]
+        hand_x = int(sum(hand_landmarks[i].x for i in hand_indices) / len(hand_indices) * w)
+        hand_y = int(sum(hand_landmarks[i].y for i in hand_indices) / len(hand_indices) * h)
+
+        cv2.circle(image, (hand_x, hand_y), 8, (255, 0, 0), -1)
+
+        # calculating the coordinates of the hand based on the center
+        final_coordinate_x = hand_x - screen_center_x
+        final_coordinate_y = hand_y - screen_center_y
+
+        # 상태바에 텍스트
+        text = f'base(0,0)  ~  xy_coordinate: ({rel_x}, {rel_y})'
+        cv2.putText(bar, text, (5, 17), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 100, 100), 1)
+    
+    # 이미지 + 상태바 붙이기
+    image = np.vstack([image, bar])
+    return image
+
+
+
+
+
+
 
 def main():
     logger.info("Starting Aether vision pipeline.")
