@@ -48,7 +48,7 @@ Development runs inside a ROS2 Dev Container. However, some programs (such as th
     - Mechatronics Team Member: Marco Yeung [UBC] [@yeungshmarco](https://github.com/yeungshmarco)
     - Mechatronics Team Member: Alex Sung [UBC] [@alxsno7](https://github.com/alxsno7)
     - Mechatronics Team Member: Minseok Oh [SFU] [@theise136](https://github.com/theise136)
-  - Firmware Team:
+- Firmware Team:
     - Firmware Team Lead: Hugo Kwon [SFU] [@hugokwon5](https://github.com/hugokwon5)
     - Firmware Team Member: Joshua Kim [SFU] [@joshuakim17](https://github.com/joshuakim17)
     - Firmware Team Member: Anson Wong [SFU] [@shripsr](https://github.com/shripsr)
