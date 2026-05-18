@@ -186,4 +186,4 @@ This project initiated by [Tommy Oh](https://github.com/TommyOh0428) and [Vincen
 
 Joint Collaboration Project with SFU and UBC AKCSE.
 
-This project is under the MIT License, and we welcome contributions. Check out CONTRIBUTE.md for the details. 
+This project is under the MIT License, and we welcome contributions. Check out CONTRIBUTING.md for the details. 
