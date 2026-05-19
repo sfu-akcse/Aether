@@ -12,6 +12,7 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from aether_logger import setup_logger
 
+from wristturn import detect_all_wrists
 
 logger = setup_logger('aether-system.log', 'AETHER.VISION')
 
@@ -260,6 +261,9 @@ def main():
         waiting_warned = False
         placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
 
+        wrist_detectors = {}
+        last_wrist_direction = {}
+
         while True:
             image, latest_ts = reader.get_latest()
 
@@ -315,6 +319,14 @@ def main():
 
             if not headless:
                 cv2.imshow('MediaPipe Hands', image)
+
+                # Wrist turn detection
+                wrist_results = detect_all_wrists(detection_result, wrist_detectors)
+                for hand_side, direction in wrist_results:
+                    if direction != last_wrist_direction.get(hand_side):
+                        logger.info("%s - %s HAND", direction.value, hand_side.upper())
+                        last_wrist_direction[hand_side] = direction
+                
                 if cv2.waitKey(1) & 0xFF == 27:  # Exit on 'ESC' key
                     logger.info("ESC pressed. Exiting vision loop.")
                     break
