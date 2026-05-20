@@ -240,7 +240,8 @@ def label_z_coordinate(image, detection_result, z_value, base_value):
         cv2.rectangle(image, (min_x, min_y), (max_x, max_y), (255, 0, 0), 2)
 
     return image, base_value
-    
+
+
 def main():
     logger.info("Starting Aether vision pipeline.")
 
@@ -250,6 +251,7 @@ def main():
 
     try:
         # Reset MediaPipe HandLandmarker (Tasks API)
+        # https://ai.google.dev/mediapipe/solutions/vision/hand_landmarker
         base_options = python.BaseOptions(model_asset_path=model_path)
         options = vision.HandLandmarkerOptions(
             base_options=base_options,
@@ -275,9 +277,25 @@ def main():
         if isinstance(camera_source, int) and not cap.isOpened():
             device_path = f"/dev/video{camera_source}"
             visible_devices = ", ".join(sorted(glob.glob('/dev/video*'))) or "none"
+
             if not os.path.exists(device_path):
-                raise RuntimeError(f"Failed to open camera source: {camera_source}")
-            raise RuntimeError(f"Failed to open camera source: {camera_source}")
+                raise RuntimeError(
+                    "Failed to open camera source: "
+                    f"{camera_source}. "
+                    f"{device_path} is not available in this container. "
+                    f"Visible camera devices: {visible_devices}. "
+                    "If you are running in a Linux devcontainer, pass through your camera "
+                    "with run args like `--device=/dev/video0:/dev/video0` "
+                    "(optionally `--group-add=video`) and rebuild the container, "
+                    "or use a stream URL for CAMERA_SOURCE."
+                )
+
+            raise RuntimeError(
+                "Failed to open camera source: "
+                f"{camera_source}. "
+                "Set CAMERA_SOURCE to an index (e.g. 0) or stream URL "
+                "(e.g. http://host.docker.internal:8080/video.mjpg)."
+            )
 
         logger.info("Using CAMERA_SOURCE=%s", camera_source)
         reader = LatestFrameReader(camera_source, cap=cap)
@@ -289,7 +307,6 @@ def main():
         waiting_warned = False
         placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
 
-        # FIXED: Initialize variables before the loop starts
         z_value = None
         base_value = None
 
@@ -308,6 +325,7 @@ def main():
                     time.sleep(0.01)
                 continue
 
+            # Surface stale stream status without blocking UI interaction.
             frame_age = time.monotonic() - latest_ts
             if frame_age > 1.0 and not waiting_warned:
                 logger.warning('Frame stream appears stale (>1s).')
@@ -315,6 +333,7 @@ def main():
             if frame_age <= 1.0:
                 waiting_warned = False
 
+            # Detect persistent blank stream frames and provide actionable guidance.
             if image.size > 0:
                 if float(image.mean()) < 2.0:
                     black_frame_count += 1
@@ -322,25 +341,35 @@ def main():
                     black_frame_count = 0
 
             if black_frame_count == 45:
-                logger.warning("Received many near-black frames.")
+                logger.warning(
+                    "Received many near-black frames from CAMERA_SOURCE. "
+                    "If using host stream, verify host preview at http://localhost:8080/ "
+                    "and try another host camera index."
+                )
 
+            # For local cameras mirror the image; host-side stream is already mirrored.
             if isinstance(camera_source, int):
                 image = cv2.flip(image, 1)
 
+            # BGR to RGB conversion for MediaPipe
             rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
 
+            # Hand detection timestamp must be strictly increasing.
             now_ms = int(time.monotonic() * 1000)
             timestamp_ms = max(timestamp_ms + 1, now_ms)
             detection_result = detector.detect_for_video(mp_image, timestamp_ms)
 
+            # Draw landmarks on the original image
             image = draw_hand_landmarks(image, detection_result)
+
             image, base_value = label_z_coordinate(image, detection_result, z_value, base_value)
 
             if not headless:
                 cv2.imshow('MediaPipe Hands', image)
-                key = cv2.waitKey(1) & 0xFF 
-                
+
+                key = cv2.waitKey(1) & 0xFF
+
                 if key == 27:  # Exit on 'ESC' key
                     logger.info("ESC pressed. Exiting vision loop.")
                     break
@@ -360,10 +389,13 @@ def main():
     finally:
         if reader is not None:
             reader.stop()
+            logger.info("Frame reader stopped.")
         if detector is not None:
             detector.close()
+            logger.info("HandLandmarker closed.")
         if not is_headless_environment():
             cv2.destroyAllWindows()
+            logger.info("OpenCV windows destroyed.")
         logger.info("Aether vision pipeline shutdown complete.")
 
 
