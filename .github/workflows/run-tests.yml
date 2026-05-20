@@ -1,0 +1,38 @@
+name: Run Tests
+
+on:
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  python-tests:
+    name: Pytest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Run pytest
+        run: bash scripts/run_pytests.sh
+
+  cpp-tests:
+    name: GTest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake libgtest-dev
+
+      - name: Run C++ tests
+        run: bash scripts/run_cpp_tests.sh
