@@ -37,7 +37,8 @@ Development runs inside a ROS2 Dev Container. However, some programs (such as th
 - Software Team:
 	- Software Team Co-lead: Tommy Oh [SFU] [@TommyOh0428](https://github.com/TommyOh0428)
 	- Software Team Co-lead: Kwanghyuk Ryu [SFU] [@kwanghyukryu](https://github.com/kwanghyukryu)
-	- Sofware Team Member: Jooyoung Lee [SFU] [@jylee2033](https://github.com/jylee2033)
+	- Software Team Member: Jooyoung Lee [SFU] [@jylee2033](https://github.com/jylee2033)
+    - Software Team Member: Eric Kim [SFU] [@taelin0701](https://github.com/taelin0701)
 	- Software Team Member: Yujun Song [SFU] [@Pinkbear20056](https://github.com/Pinkbear20056)
 	- Software Team Member: Yoobeen Hong [UBC] [@rubyoobeen](https://github.com/rubyoobeen)
     - Software Team Member: Soyoung Lee [SFU] [@sla602](https://github.com/sla602) 
