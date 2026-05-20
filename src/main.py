@@ -205,11 +205,21 @@ def draw_xy_coordinates(image, detection_result):
 
     # print the dot on the center, 
     for hand_landmarks in detection_result.hand_landmarks:
-        hand_indices = [0, 1, 2, 5, 9, 13, 17]
+        hand_indices = []
 
+        for i in  [0, 1, 2, 5, 9, 13, 17]:
+            if (
+                0.0 <= hand_landmarks[i].x <= 1.0 
+                and
+                0.0 <= hand_landmarks[i].y <= 1.0 
+            ):
+                hand_indices.append(i)
+
+        if not hand_indices:
+            continue
+    
         hand_x = int(sum(hand_landmarks[i].x for i in hand_indices) / len(hand_indices) * w)
         hand_y = int(sum(hand_landmarks[i].y for i in hand_indices) / len(hand_indices) * h)
-
         cv2.circle(image, (hand_x, hand_y), 8, (255, 0, 0), -1) # blue 
 
         # calculating the coordinates of the hand based on the center
@@ -218,8 +228,7 @@ def draw_xy_coordinates(image, detection_result):
 
         # printing coordinates next to hand center
         text = f'({final_coordinate_x}, {final_coordinate_y})'
-        cv2.putText(image, text, (hand_x + 12, hand_y),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+        cv2.putText(image, text, (hand_x + 12, hand_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
     
     return image
 
