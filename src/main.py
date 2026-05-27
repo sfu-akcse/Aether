@@ -217,9 +217,23 @@ def draw_xy_coordinates(image, detection_result):
 
         if not hand_indices:
             continue
-    
-        hand_x = int(sum(hand_landmarks[i].x for i in hand_indices) / len(hand_indices) * w)
-        hand_y = int(sum(hand_landmarks[i].y for i in hand_indices) / len(hand_indices) * h)
+
+        # hand_x 
+        x_sum = 0
+        for i in hand_indices:
+            x_sum = x_sum + hand_landmarks[i].x  
+
+        x_average = x_sum / len(hand_indices)   
+        hand_x = int(x_average * w)            
+
+        # hand_y 
+        y_sum = 0
+        for i in hand_indices:
+            y_sum = y_sum + hand_landmarks[i].y  
+            
+        y_average = y_sum / len(hand_indices)   
+        hand_y = int(y_average * h) 
+
         cv2.circle(image, (hand_x, hand_y), 8, (255, 0, 0), -1) # blue 
 
         # calculating the coordinates of the hand based on the center
