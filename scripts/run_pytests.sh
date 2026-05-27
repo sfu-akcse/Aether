@@ -4,7 +4,7 @@ echo "------------------------------------------"
 echo "   Running Aether Pytest Test Suite...   "
 echo "------------------------------------------"
 
-python3 -m pytest -v tests/
+PYTHONPATH=/workspace/src python3 -m pytest -v tests/
 
 RESULT=$?
 
