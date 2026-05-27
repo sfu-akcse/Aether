@@ -1,6 +1,6 @@
 import numpy as np
 from unittest.mock import MagicMock
-from main import draw_xy_coordinates
+from utils import draw_xy_coordinates
 
 # sample
 def add(a,b):
