@@ -19,7 +19,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install pytest
-        run: pip install pytest numpy
+        run: pip install pytest numpy opencv-python
 
       - name: Run pytest
         run: bash scripts/run_pytests.sh
