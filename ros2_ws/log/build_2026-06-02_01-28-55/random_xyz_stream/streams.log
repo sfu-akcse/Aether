@@ -1,0 +1,53 @@
+[0.213s] Invoking command in '/workspace/ros2_ws/build/random_xyz_stream': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /workspace/ros2_ws/build/random_xyz_stream -- -j8 -l8
+[0.799s] -- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)
+[1.926s] -- Found geometry_msgs: 4.9.1 (/opt/ros/humble/share/geometry_msgs/cmake)
+[2.002s] -- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[2.005s] -- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[2.018s] -- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[2.035s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[2.062s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[2.134s] -- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)
+[2.187s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[2.190s] -- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[2.464s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[2.545s] -- Found ament_lint_auto: 0.12.15 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[2.898s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[2.899s] -- Configured cppcheck include dirs: 
+[2.900s] -- Configured cppcheck exclude dirs and/or files: 
+[2.902s] -- Added test 'lint_cmake' to check CMake code style
+[2.906s] -- Added test 'uncrustify' to check C / C++ code style
+[2.906s] -- Configured uncrustify additional arguments: 
+[2.908s] -- Added test 'xmllint' to check XML markup files
+[2.918s] -- Configuring done
+[3.147s] -- Generating done
+[3.289s] -- Build files have been written to: /workspace/ros2_ws/build/random_xyz_stream
+[3.826s] [35m[1mConsolidate compiler generated dependencies of target random_xyz_publisher[0m
+[3.842s] [35m[1mConsolidate compiler generated dependencies of target random_xyz_subscriber[0m
+[4.032s] [ 16%] [32mBuilding CXX object CMakeFiles/tcp_xyz_bridge.dir/src/tcp_xyz_bridge.cpp.o[0m
+[4.433s] [ 50%] Built target random_xyz_subscriber
+[4.440s] [ 83%] Built target random_xyz_publisher
+[29.972s] [100%] [32m[1mLinking CXX executable tcp_xyz_bridge[0m
+[32.166s] [100%] Built target tcp_xyz_bridge
+[32.409s] Invoked command in '/workspace/ros2_ws/build/random_xyz_stream' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /workspace/ros2_ws/build/random_xyz_stream -- -j8 -l8
+[32.706s] Invoking command in '/workspace/ros2_ws/build/random_xyz_stream': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /workspace/ros2_ws/build/random_xyz_stream
+[32.872s] -- Install configuration: ""
+[32.879s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/lib/random_xyz_stream/random_xyz_publisher
+[32.888s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/lib/random_xyz_stream/random_xyz_subscriber
+[32.892s] -- Installing: /workspace/ros2_ws/install/random_xyz_stream/lib/random_xyz_stream/tcp_xyz_bridge
+[32.962s] -- Set runtime path of "/workspace/ros2_ws/install/random_xyz_stream/lib/random_xyz_stream/tcp_xyz_bridge" to ""
+[32.964s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/share/ament_index/resource_index/package_run_dependencies/random_xyz_stream
+[32.965s] -- Installing: /workspace/ros2_ws/install/random_xyz_stream/share/ament_index/resource_index/parent_prefix_path/random_xyz_stream
+[32.969s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/environment/ament_prefix_path.sh
+[32.972s] -- Installing: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/environment/ament_prefix_path.dsv
+[32.975s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/environment/path.sh
+[32.977s] -- Installing: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/environment/path.dsv
+[32.985s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/local_setup.bash
+[32.986s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/local_setup.sh
+[32.986s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/local_setup.zsh
+[32.987s] -- Installing: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/local_setup.dsv
+[32.990s] -- Installing: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.dsv
+[32.993s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/share/ament_index/resource_index/packages/random_xyz_stream
+[32.994s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/cmake/random_xyz_streamConfig.cmake
+[32.995s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/cmake/random_xyz_streamConfig-version.cmake
+[32.995s] -- Up-to-date: /workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.xml
+[33.028s] Invoked command in '/workspace/ros2_ws/build/random_xyz_stream' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /workspace/ros2_ws/build/random_xyz_stream
