@@ -1,0 +1,13 @@
+<launch>
+  <node
+    pkg="sample_action_cpp"
+    exec="sample_action_server"
+    name="fibonacci_action_server"
+    output="screen" />
+
+  <node
+    pkg="sample_action_cpp"
+    exec="sample_action_client"
+    name="fibonacci_action_client"
+    output="screen" />
+</launch>
