@@ -11,6 +11,7 @@ import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from aether_logger import setup_logger
+from utils import draw_xy_coordinates
 from z_coordinate import label_z_coordinate
 
 
@@ -195,7 +196,6 @@ def draw_hand_landmarks(image, detection_result):
 
     return image
 
-
 def main():
     logger.info("Starting Aether vision pipeline.")
 
@@ -316,6 +316,8 @@ def main():
 
             # Draw landmarks on the original image
             image = draw_hand_landmarks(image, detection_result)
+            # Draw XY coordinates on the original image
+            image = draw_xy_coordinates(image, detection_result)
 
             image, base_value = label_z_coordinate(image, detection_result, z_value, base_value)
 
