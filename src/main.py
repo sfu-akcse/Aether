@@ -12,6 +12,7 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from aether_logger import setup_logger
 from utils import draw_xy_coordinates
+from z_coordinate import label_z_coordinate
 
 
 logger = setup_logger('aether-system.log', 'AETHER.VISION')
@@ -260,6 +261,9 @@ def main():
         waiting_warned = False
         placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
 
+        z_value = None
+        base_value = None
+
         while True:
             image, latest_ts = reader.get_latest()
 
@@ -315,11 +319,20 @@ def main():
             # Draw XY coordinates on the original image
             image = draw_xy_coordinates(image, detection_result)
 
+            image, base_value = label_z_coordinate(image, detection_result, z_value, base_value)
+
             if not headless:
                 cv2.imshow('MediaPipe Hands', image)
-                if cv2.waitKey(1) & 0xFF == 27:  # Exit on 'ESC' key
+
+                key = cv2.waitKey(1) & 0xFF
+
+                if key == 27:  # Exit on 'ESC' key
                     logger.info("ESC pressed. Exiting vision loop.")
                     break
+                elif key == ord('r'):
+                    z_value = 0
+                else:
+                    z_value = None
 
         logger.info("Vision loop exited normally.")
         return 0
