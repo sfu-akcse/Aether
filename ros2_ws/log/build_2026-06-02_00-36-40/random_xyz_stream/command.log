@@ -1,0 +1,6 @@
+Invoking command in '/workspace/ros2_ws/build/random_xyz_stream': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /workspace/ros2_ws/src/random_xyz_stream -DCMAKE_INSTALL_PREFIX=/workspace/ros2_ws/install/random_xyz_stream
+Invoked command in '/workspace/ros2_ws/build/random_xyz_stream' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /workspace/ros2_ws/src/random_xyz_stream -DCMAKE_INSTALL_PREFIX=/workspace/ros2_ws/install/random_xyz_stream
+Invoking command in '/workspace/ros2_ws/build/random_xyz_stream': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /workspace/ros2_ws/build/random_xyz_stream -- -j8 -l8
+Invoked command in '/workspace/ros2_ws/build/random_xyz_stream' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /workspace/ros2_ws/build/random_xyz_stream -- -j8 -l8
+Invoking command in '/workspace/ros2_ws/build/random_xyz_stream': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /workspace/ros2_ws/build/random_xyz_stream
+Invoked command in '/workspace/ros2_ws/build/random_xyz_stream' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /workspace/ros2_ws/build/random_xyz_stream

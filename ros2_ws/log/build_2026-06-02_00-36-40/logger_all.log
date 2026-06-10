@@ -1,0 +1,143 @@
+[0.562s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build']
+[0.565s] DEBUG:colcon:Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='build', build_base='build', install_base='install', merge_install=False, symlink_install=False, test_result_base=None, continue_on_error=False, executor='parallel', parallel_workers=8, event_handlers=None, ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['.'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=None, packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, cmake_args=None, cmake_target=None, cmake_target_skip_unavailable=False, cmake_clean_cache=False, cmake_clean_first=False, cmake_force_configure=False, ament_cmake_args=None, catkin_cmake_args=None, catkin_skip_building_tests=False, mixin_files=None, mixin=None, verb_parser=<colcon_mixin.mixin.mixin_argument.MixinArgumentDecorator object at 0x7ffffe240850>, verb_extension=<colcon_core.verb.build.BuildVerb object at 0x7ffffe240190>, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0x7ffffe240190>>, mixin_verb=('build',))
+[1.014s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[1.016s] INFO:colcon.colcon_metadata.package_discovery.colcon_meta:Using configuration from '/root/.colcon/metadata/default/Gazebo.meta'
+[1.017s] INFO:colcon.colcon_metadata.package_discovery.colcon_meta:Using configuration from '/root/.colcon/metadata/default/fastdds.meta'
+[1.018s] INFO:colcon.colcon_metadata.package_discovery.colcon_meta:Using configuration from '/root/.colcon/metadata/default/fastrtps.meta'
+[1.019s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[1.019s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[1.019s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[1.019s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[1.019s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[1.020s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/workspace/ros2_ws'
+[1.020s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[1.021s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[1.022s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[1.022s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[1.022s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[1.023s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[1.023s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[1.023s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[1.023s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[1.064s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['cmake', 'python']
+[1.064s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'cmake'
+[1.065s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python'
+[1.065s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['python_setup_py']
+[1.065s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python_setup_py'
+[1.066s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extensions ['ignore', 'ignore_ament_install']
+[1.066s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extension 'ignore'
+[1.066s] Level 1:colcon.colcon_core.package_identification:_identify(build) ignored
+[1.067s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extensions ['ignore', 'ignore_ament_install']
+[1.067s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extension 'ignore'
+[1.067s] Level 1:colcon.colcon_core.package_identification:_identify(install) ignored
+[1.068s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extensions ['ignore', 'ignore_ament_install']
+[1.068s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extension 'ignore'
+[1.068s] Level 1:colcon.colcon_core.package_identification:_identify(log) ignored
+[1.069s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ignore', 'ignore_ament_install']
+[1.069s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore'
+[1.070s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore_ament_install'
+[1.071s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_pkg']
+[1.071s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_pkg'
+[1.071s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_meta']
+[1.072s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_meta'
+[1.072s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ros']
+[1.072s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ros'
+[1.074s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['cmake', 'python']
+[1.074s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'cmake'
+[1.074s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python'
+[1.075s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['python_setup_py']
+[1.075s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python_setup_py'
+[1.075s] Level 1:colcon.colcon_core.package_identification:_identify(src/random_xyz_stream) by extensions ['ignore', 'ignore_ament_install']
+[1.075s] Level 1:colcon.colcon_core.package_identification:_identify(src/random_xyz_stream) by extension 'ignore'
+[1.075s] Level 1:colcon.colcon_core.package_identification:_identify(src/random_xyz_stream) by extension 'ignore_ament_install'
+[1.076s] Level 1:colcon.colcon_core.package_identification:_identify(src/random_xyz_stream) by extensions ['colcon_pkg']
+[1.076s] Level 1:colcon.colcon_core.package_identification:_identify(src/random_xyz_stream) by extension 'colcon_pkg'
+[1.076s] Level 1:colcon.colcon_core.package_identification:_identify(src/random_xyz_stream) by extensions ['colcon_meta']
+[1.076s] Level 1:colcon.colcon_core.package_identification:_identify(src/random_xyz_stream) by extension 'colcon_meta'
+[1.076s] Level 1:colcon.colcon_core.package_identification:_identify(src/random_xyz_stream) by extensions ['ros']
+[1.076s] Level 1:colcon.colcon_core.package_identification:_identify(src/random_xyz_stream) by extension 'ros'
+[1.091s] DEBUG:colcon.colcon_core.package_identification:Package 'src/random_xyz_stream' with type 'ros.ament_cmake' and name 'random_xyz_stream'
+[1.092s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[1.092s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[1.092s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[1.092s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[1.092s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[1.176s] Level 5:colcon.colcon_core.verb:set package 'random_xyz_stream' build argument 'cmake_args' from command line to 'None'
+[1.177s] Level 5:colcon.colcon_core.verb:set package 'random_xyz_stream' build argument 'cmake_target' from command line to 'None'
+[1.177s] Level 5:colcon.colcon_core.verb:set package 'random_xyz_stream' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.178s] Level 5:colcon.colcon_core.verb:set package 'random_xyz_stream' build argument 'cmake_clean_cache' from command line to 'False'
+[1.178s] Level 5:colcon.colcon_core.verb:set package 'random_xyz_stream' build argument 'cmake_clean_first' from command line to 'False'
+[1.178s] Level 5:colcon.colcon_core.verb:set package 'random_xyz_stream' build argument 'cmake_force_configure' from command line to 'False'
+[1.178s] Level 5:colcon.colcon_core.verb:set package 'random_xyz_stream' build argument 'ament_cmake_args' from command line to 'None'
+[1.178s] Level 5:colcon.colcon_core.verb:set package 'random_xyz_stream' build argument 'catkin_cmake_args' from command line to 'None'
+[1.179s] Level 5:colcon.colcon_core.verb:set package 'random_xyz_stream' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.179s] DEBUG:colcon.colcon_core.verb:Building package 'random_xyz_stream' with the following arguments: {'ament_cmake_args': None, 'build_base': '/workspace/ros2_ws/build/random_xyz_stream', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/workspace/ros2_ws/install/random_xyz_stream', 'merge_install': False, 'path': '/workspace/ros2_ws/src/random_xyz_stream', 'symlink_install': False, 'test_result_base': None}
+[1.179s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[1.188s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[1.192s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/workspace/ros2_ws/src/random_xyz_stream' with build type 'ament_cmake'
+[1.193s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/workspace/ros2_ws/src/random_xyz_stream'
+[1.220s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[1.221s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.222s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.513s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/workspace/ros2_ws/build/random_xyz_stream': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /workspace/ros2_ws/src/random_xyz_stream -DCMAKE_INSTALL_PREFIX=/workspace/ros2_ws/install/random_xyz_stream
+[12.224s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/workspace/ros2_ws/build/random_xyz_stream' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /workspace/ros2_ws/src/random_xyz_stream -DCMAKE_INSTALL_PREFIX=/workspace/ros2_ws/install/random_xyz_stream
+[12.246s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/workspace/ros2_ws/build/random_xyz_stream': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /workspace/ros2_ws/build/random_xyz_stream -- -j8 -l8
+[53.508s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/workspace/ros2_ws/build/random_xyz_stream' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /workspace/ros2_ws/build/random_xyz_stream -- -j8 -l8
+[53.671s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/workspace/ros2_ws/build/random_xyz_stream': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /workspace/ros2_ws/build/random_xyz_stream
+[54.031s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(random_xyz_stream)
+[54.050s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/workspace/ros2_ws/build/random_xyz_stream' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /workspace/ros2_ws/build/random_xyz_stream
+[54.068s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream' for CMake module files
+[54.070s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream' for CMake config files
+[54.072s] Level 1:colcon.colcon_core.shell:create_environment_hook('random_xyz_stream', 'cmake_prefix_path')
+[54.074s] INFO:colcon.colcon_core.shell:Creating environment hook '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/hook/cmake_prefix_path.ps1'
+[54.084s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/hook/cmake_prefix_path.dsv'
+[54.086s] INFO:colcon.colcon_core.shell:Creating environment hook '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/hook/cmake_prefix_path.sh'
+[54.093s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream/lib'
+[54.093s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream/bin'
+[54.093s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream/lib/pkgconfig/random_xyz_stream.pc'
+[54.099s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream/lib/python3.10/site-packages'
+[54.100s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream/bin'
+[54.101s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.ps1'
+[54.104s] INFO:colcon.colcon_core.shell:Creating package descriptor '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.dsv'
+[54.106s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.sh'
+[54.115s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.bash'
+[54.121s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.zsh'
+[54.129s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/workspace/ros2_ws/install/random_xyz_stream/share/colcon-core/packages/random_xyz_stream)
+[54.139s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(random_xyz_stream)
+[54.139s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream' for CMake module files
+[54.142s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream' for CMake config files
+[54.145s] Level 1:colcon.colcon_core.shell:create_environment_hook('random_xyz_stream', 'cmake_prefix_path')
+[54.145s] INFO:colcon.colcon_core.shell:Creating environment hook '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/hook/cmake_prefix_path.ps1'
+[54.146s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/hook/cmake_prefix_path.dsv'
+[54.147s] INFO:colcon.colcon_core.shell:Creating environment hook '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/hook/cmake_prefix_path.sh'
+[54.149s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream/lib'
+[54.149s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream/bin'
+[54.149s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream/lib/pkgconfig/random_xyz_stream.pc'
+[54.150s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream/lib/python3.10/site-packages'
+[54.150s] Level 1:colcon.colcon_core.environment:checking '/workspace/ros2_ws/install/random_xyz_stream/bin'
+[54.151s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.ps1'
+[54.153s] INFO:colcon.colcon_core.shell:Creating package descriptor '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.dsv'
+[54.154s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.sh'
+[54.154s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.bash'
+[54.155s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/ros2_ws/install/random_xyz_stream/share/random_xyz_stream/package.zsh'
+[54.156s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/workspace/ros2_ws/install/random_xyz_stream/share/colcon-core/packages/random_xyz_stream)
+[54.158s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[54.160s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[54.160s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished with '0'
+[54.161s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[54.215s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.notify_send': Could not find 'notify-send'
+[54.215s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[54.216s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[54.216s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[54.245s] DEBUG:colcon.colcon_notification.desktop_notification.notify2:Failed to initialize notify2: org.freedesktop.DBus.Error.Spawn.ExecFailed: /usr/bin/dbus-launch terminated abnormally without any error message
+[54.246s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[54.248s] INFO:colcon.colcon_core.shell:Creating prefix script '/workspace/ros2_ws/install/local_setup.ps1'
+[54.251s] INFO:colcon.colcon_core.shell:Creating prefix util module '/workspace/ros2_ws/install/_local_setup_util_ps1.py'
+[54.255s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/workspace/ros2_ws/install/setup.ps1'
+[54.259s] INFO:colcon.colcon_core.shell:Creating prefix script '/workspace/ros2_ws/install/local_setup.sh'
+[54.261s] INFO:colcon.colcon_core.shell:Creating prefix util module '/workspace/ros2_ws/install/_local_setup_util_sh.py'
+[54.263s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/workspace/ros2_ws/install/setup.sh'
+[54.266s] INFO:colcon.colcon_core.shell:Creating prefix script '/workspace/ros2_ws/install/local_setup.bash'
+[54.267s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/workspace/ros2_ws/install/setup.bash'
+[54.270s] INFO:colcon.colcon_core.shell:Creating prefix script '/workspace/ros2_ws/install/local_setup.zsh'
+[54.272s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/workspace/ros2_ws/install/setup.zsh'
