@@ -32,9 +32,18 @@ ros2 run random_xyz_stream random_xyz_subscriber
 
 Start the TCP receiver on the Mac host:
 
+Build:
+
+```bash
+cd /workspace/ros2_ws
+colcon build --packages-select random_xyz_stream
+source install/setup.zsh
+ros2 run random_xyz_stream tcp_xyz_bridge
+```
+
 ```bash
 cd /Users/admin/Aether
-python3 scripts/tcp_xyz_receiver.py --port 5000
+python3 scripts/tcp_xyz_receiver.py --port 5001
 ```
 
 Start the ROS 2 publisher in the devcontainer:
