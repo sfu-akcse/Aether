@@ -1,5 +1,6 @@
 import os
 import glob
+import json
 import threading
 import time
 import urllib.request
@@ -11,9 +12,15 @@ import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from aether_logger import setup_logger
-from utils import draw_xy_coordinates
-from z_coordinate import label_z_coordinate
+from xy_coordinate import draw_xy_coordinates, extract_xy_coordinates
+from z_coordinate import extract_z_coordinate, label_z_coordinate
 
+#cd /Users/admin/Aether
+#source .host-venv/bin/activate
+#./scripts/run_webcam_pipeline.sh host --port 8080
+
+#cd /workspace
+#CAMERA_SOURCE=http://host.docker.internal:8080/video.mjpg python3 src/main.py
 
 logger = setup_logger('aether-system.log', 'AETHER.VISION')
 
@@ -263,6 +270,7 @@ def main():
 
         z_value = None
         base_value = None
+        last_xyz = None
 
         while True:
             image, latest_ts = reader.get_latest()
@@ -319,7 +327,19 @@ def main():
             # Draw XY coordinates on the original image
             image = draw_xy_coordinates(image, detection_result)
 
+            xy_coordinates = extract_xy_coordinates(image, detection_result)
+            z_coordinate, base_value = extract_z_coordinate(image, detection_result, z_value, base_value)
             image, base_value = label_z_coordinate(image, detection_result, z_value, base_value)
+
+            if xy_coordinates is not None:
+                xyz = {
+                    'x': xy_coordinates['x'],
+                    'y': xy_coordinates['y'],
+                    'z': z_coordinate,
+                }
+                if xyz != last_xyz:
+                    print(json.dumps(xyz), flush=True)
+                    last_xyz = xyz
 
             if not headless:
                 cv2.imshow('MediaPipe Hands', image)
