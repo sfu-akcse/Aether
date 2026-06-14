@@ -12,7 +12,7 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from aether_logger import setup_logger
 from z_coordinate import label_z_coordinate
-
+from MultiHandTracker import MultiHandTracker, HandSide
 
 logger = setup_logger('aether-system.log', 'AETHER.VISION')
 
@@ -217,6 +217,7 @@ def main():
         )
         detector = vision.HandLandmarker.create_from_options(options)
         logger.info("MediaPipe HandLandmarker initialized with model=%s", model_path)
+        tracker = MultiHandTracker(is_mirrored=True)
 
         camera_source = resolve_camera_source()
         cap = None
@@ -313,6 +314,7 @@ def main():
             now_ms = int(time.monotonic() * 1000)
             timestamp_ms = max(timestamp_ms + 1, now_ms)
             detection_result = detector.detect_for_video(mp_image, timestamp_ms)
+            tracker.update(detection_result)
 
             # Draw landmarks on the original image
             image = draw_hand_landmarks(image, detection_result)
