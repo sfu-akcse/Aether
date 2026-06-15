@@ -14,6 +14,7 @@ from mediapipe.tasks.python import vision
 from aether_logger import setup_logger
 from xy_coordinate import draw_xy_coordinates, extract_xy_coordinates
 from z_coordinate import extract_z_coordinate, label_z_coordinate
+from base_rotation import base_rotation_x
 
 #cd /Users/admin/Aether
 #source .host-venv/bin/activate
@@ -330,6 +331,8 @@ def main():
             xy_coordinates = extract_xy_coordinates(image, detection_result)
             z_coordinate, base_value = extract_z_coordinate(image, detection_result, z_value, base_value)
             image, base_value = label_z_coordinate(image, detection_result, z_value, base_value)
+
+            base_rotation_x(xy_coordinates, image)
 
             if xy_coordinates is not None:
                 xyz = {
