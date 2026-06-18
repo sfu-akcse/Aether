@@ -1,0 +1,13 @@
+<launch>
+  <node
+    pkg="sample_topic"
+    exec="talker"
+    name="sample_topic_publisher"
+    output="screen" />
+
+  <node
+    pkg="sample_topic"
+    exec="listener"
+    name="sample_topic_subscriber"
+    output="screen" />
+</launch>

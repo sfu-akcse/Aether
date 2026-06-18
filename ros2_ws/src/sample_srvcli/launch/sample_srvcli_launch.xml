@@ -1,0 +1,13 @@
+<launch>
+  <node
+    pkg="sample_srvcli"
+    exec="server"
+    name="add_two_ints_server"
+    output="screen" />
+
+  <node
+    pkg="sample_srvcli"
+    exec="client"
+    name="add_two_ints_client"
+    output="screen" />
+</launch>
