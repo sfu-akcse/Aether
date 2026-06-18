@@ -4,3 +4,5 @@ logs/
 build/
 install/
 log/
+
+.pytest_cache/
