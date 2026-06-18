@@ -1,0 +1,2 @@
+source;share/hand_xyz_subscriber_pkg/environment/ament_prefix_path.sh
+source;share/hand_xyz_subscriber_pkg/environment/path.sh

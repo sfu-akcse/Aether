@@ -1,0 +1,61 @@
+[0.444s] Invoking command in '/workspace/Aether-firmware_ws/build/hand_xyz_subscriber_pkg': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /workspace/Aether-firmware_ws/src/hand_xyz_subscriber_pkg -DCMAKE_INSTALL_PREFIX=/workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg
+[4.978s] -- The C compiler identification is GNU 11.4.0
+[8.400s] -- The CXX compiler identification is GNU 11.4.0
+[8.695s] -- Detecting C compiler ABI info
+[14.377s] -- Detecting C compiler ABI info - done
+[14.483s] -- Check for working C compiler: /usr/bin/cc - skipped
+[14.492s] -- Detecting C compile features
+[14.499s] -- Detecting C compile features - done
+[14.571s] -- Detecting CXX compiler ABI info
+[18.196s] -- Detecting CXX compiler ABI info - done
+[18.257s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[18.258s] -- Detecting CXX compile features
+[18.260s] -- Detecting CXX compile features - done
+[18.368s] -- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)
+[22.980s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[25.077s] -- Found geometry_msgs: 4.9.1 (/opt/ros/humble/share/geometry_msgs/cmake)
+[25.356s] -- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[25.377s] -- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[25.412s] -- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[25.498s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[25.626s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[25.866s] -- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)
+[26.099s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[26.114s] -- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[29.006s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[29.340s] -- Found FastRTPS: /opt/ros/humble/include  
+[29.876s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[30.081s] -- Looking for pthread.h
+[34.460s] -- Looking for pthread.h - found
+[34.499s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[39.115s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[39.153s] -- Found Threads: TRUE  
+[42.060s] -- Configuring done
+[43.755s] -- Generating done
+[44.659s] -- Build files have been written to: /workspace/Aether-firmware_ws/build/hand_xyz_subscriber_pkg
+[45.575s] Invoked command in '/workspace/Aether-firmware_ws/build/hand_xyz_subscriber_pkg' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /workspace/Aether-firmware_ws/src/hand_xyz_subscriber_pkg -DCMAKE_INSTALL_PREFIX=/workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg
+[46.051s] Invoking command in '/workspace/Aether-firmware_ws/build/hand_xyz_subscriber_pkg': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /workspace/Aether-firmware_ws/build/hand_xyz_subscriber_pkg -- -j8 -l8
+[52.544s] [ 50%] [32mBuilding CXX object CMakeFiles/hand_xyz_subscriber.dir/src/hand_xyz_subscriber.cpp.o[0m
+[155.243s] [100%] [32m[1mLinking CXX executable hand_xyz_subscriber[0m
+[157.784s] [100%] Built target hand_xyz_subscriber
+[158.074s] Invoked command in '/workspace/Aether-firmware_ws/build/hand_xyz_subscriber_pkg' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /workspace/Aether-firmware_ws/build/hand_xyz_subscriber_pkg -- -j8 -l8
+[158.356s] Invoking command in '/workspace/Aether-firmware_ws/build/hand_xyz_subscriber_pkg': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /workspace/Aether-firmware_ws/build/hand_xyz_subscriber_pkg
+[158.472s] -- Install configuration: ""
+[158.480s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/lib/hand_xyz_subscriber_pkg/hand_xyz_subscriber
+[158.628s] -- Set runtime path of "/workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/lib/hand_xyz_subscriber_pkg/hand_xyz_subscriber" to ""
+[158.631s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/ament_index/resource_index/package_run_dependencies/hand_xyz_subscriber_pkg
+[158.637s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/ament_index/resource_index/parent_prefix_path/hand_xyz_subscriber_pkg
+[158.684s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/environment/ament_prefix_path.sh
+[158.714s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/environment/ament_prefix_path.dsv
+[158.724s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/environment/path.sh
+[158.730s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/environment/path.dsv
+[158.732s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/local_setup.bash
+[158.744s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/local_setup.sh
+[158.751s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/local_setup.zsh
+[158.772s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/local_setup.dsv
+[158.780s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/package.dsv
+[158.821s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/ament_index/resource_index/packages/hand_xyz_subscriber_pkg
+[158.829s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/cmake/hand_xyz_subscriber_pkgConfig.cmake
+[158.831s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/cmake/hand_xyz_subscriber_pkgConfig-version.cmake
+[158.839s] -- Installing: /workspace/Aether-firmware_ws/install/hand_xyz_subscriber_pkg/share/hand_xyz_subscriber_pkg/package.xml
+[158.915s] Invoked command in '/workspace/Aether-firmware_ws/build/hand_xyz_subscriber_pkg' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /workspace/Aether-firmware_ws/build/hand_xyz_subscriber_pkg

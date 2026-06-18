@@ -9,6 +9,10 @@
     "--ipc=host"
   ],
 
+  "mounts": [
+    "source=/Users/admin/Aether-firmware,target=/workspace/Aether-firmware,type=bind"
+  ],
+
   // Browser GUI access for fully containerized Gazebo via noVNC.
   "forwardPorts": [6080, 5901],
   "portsAttributes": {
