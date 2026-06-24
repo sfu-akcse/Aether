@@ -1,5 +1,15 @@
 import cv2
 
+
+def get_base_rotation_direction(xy_coordinates, threshold=100):
+    if xy_coordinates is None:
+        return "No hand"
+    if xy_coordinates["x"] <= -threshold:
+        return "Left"
+    if xy_coordinates["x"] >= threshold:
+        return "Right"
+    return "Center"
+
 def base_rotation_x(xy_coordinates, image):
     if xy_coordinates is None:
         return
@@ -13,7 +23,9 @@ def base_rotation_x(xy_coordinates, image):
     left_center_x = x1 // 2
     right_center_x = (x2 + w) // 2
 
-    if xy_coordinates['x'] <= -100:
+    direction = get_base_rotation_direction(xy_coordinates)
+
+    if direction == "Left":
         cv2.arrowedLine(
             image,
             (left_center_x + 40, h // 2),
@@ -23,7 +35,7 @@ def base_rotation_x(xy_coordinates, image):
             tipLength=0.4
         )
 
-    elif xy_coordinates['x'] >= 100:
+    elif direction == "Right":
         cv2.arrowedLine(
             image,
             (right_center_x - 40, h // 2),
