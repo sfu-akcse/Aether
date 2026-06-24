@@ -16,6 +16,8 @@ from z_coordinate import label_z_coordinate
 from MultiHandTracker import MultiHandTracker, HandSide
 from xy_coordinate import draw_xy_coordinates, extract_xy_coordinates
 from z_coordinate import extract_z_coordinate, label_z_coordinate
+from base_rotation import base_rotation_x
+from base_rotation import border_box
 
 #cd /Users/admin/Aether
 #source .host-venv/bin/activate
@@ -330,10 +332,14 @@ def main():
             image = draw_hand_landmarks(image, detection_result)
             # Draw XY coordinates on the original image
             image = draw_xy_coordinates(image, detection_result)
+            # Create a border box
+            image = border_box(image)
 
             xy_coordinates = extract_xy_coordinates(image, detection_result)
             z_coordinate, base_value = extract_z_coordinate(image, detection_result, z_value, base_value)
             image, base_value = label_z_coordinate(image, detection_result, z_value, base_value)
+
+            base_rotation_x(xy_coordinates, image)
 
             if xy_coordinates is not None:
                 xyz = {

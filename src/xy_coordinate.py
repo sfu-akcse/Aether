@@ -5,8 +5,12 @@ def extract_xy_coordinates(image, detection_result):
         return None
 
     h, w, _ = image.shape
-    screen_center_x = w // 2
-    screen_center_y = h // 2
+
+    box_size = min(h, w)
+    x1 = (w - box_size) // 2
+    y1 = (h - box_size) // 2
+    x2 = x1 + box_size
+    y2 = y1 + box_size
 
     hand_landmarks = detection_result.hand_landmarks[0]
     hand_indices = []
@@ -24,11 +28,17 @@ def extract_xy_coordinates(image, detection_result):
     hand_x = int(x_average * w)
     hand_y = int(y_average * h)
 
+    clamped_x = max(x1, min(hand_x, x2))
+    clamped_y = max(y1, min(hand_y, y2))
+
+    x = ((clamped_x - x1) / box_size) * 200 - 100
+    y = 100 - ((clamped_y - y1) / box_size) * 200
+
     return {
         'pixel_x': hand_x,
         'pixel_y': hand_y,
-        'x': hand_x - screen_center_x,
-        'y': -(hand_y - screen_center_y),
+        'x': round(x, 1),
+        'y': round(y, 1),
     }
 
 def draw_xy_coordinates(image, detection_result):
