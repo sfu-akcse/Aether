@@ -210,9 +210,9 @@ class CoordinatePublisher(Node):
             draw_hand_name(image, "Left Hand", left_hand, (120, 220, 255))
 
             self.left_xy = extract_xy_coordinates_for_hand(image, left_hand)
-            left_base_rotation = get_base_rotation_direction(left_xy)
+            left_base_rotation = get_base_rotation_direction(self.left_xy)
             if self.left_xy is not None:
-                base_rotation_x(left_xy, image)
+                base_rotation_x(self.left_xy, image)
 
             self.left_grab = True if is_grabbing(left_hand) else False
             if self.left_hand_base_roll is not None and self.left_hand_base_pitch is not None:
