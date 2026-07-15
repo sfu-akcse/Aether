@@ -352,6 +352,9 @@ def main():
         right_hand_z_base = None
         left_hand_base_roll = None
         left_hand_base_pitch = None
+        
+        input_key = False 
+        input_coordinates = {"x": 0, "y": 0, "z": 0} # Start in center of screen
 
         while True:
             image, latest_ts = reader.get_latest()
@@ -394,6 +397,7 @@ def main():
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
             now_ms = int(time.monotonic() * 1000)
             timestamp_ms = max(timestamp_ms + 1, now_ms)
+            
             detection_result = detector.detect_for_video(mp_image, timestamp_ms)
             tracker.update(detection_result)
 
@@ -412,109 +416,194 @@ def main():
             left_wrist = None
             left_base_rotation = "No hand"
 
-            if right_state is not None:
-                right_hand = right_state.landmarks
-                draw_hand_landmarks(image, right_hand)
-                draw_hand_name(image, "Right Hand", right_hand, (255, 120, 120))
+            # MANUAL MODE
+            if input_key:
+                h, w, _ = image.shape
+                box_size = min(h, w)
+                x1 = (w - box_size) // 2
+                y1 = (h - box_size) // 2
+                x2 = x1 + box_size
+                y2 = y1 + box_size
 
-                right_xyz = extract_xy_coordinates_for_hand(image, right_hand)
-                right_z, right_hand_z_base, right_z_box = extract_z_coordinate_for_hand(
-                    image,
-                    right_hand,
-                    False,
-                    right_hand_z_base,
+                hand_x = input_coordinates["x"]
+                hand_y = input_coordinates["y"]
+
+                clamped_x = max(x1, min(hand_x, x2))
+                clamped_y = max(y1, min(hand_y, y2))
+
+                x_value = ((clamped_x - x1) / box_size) * 200 - 100
+                y_value = 100 - ((clamped_y - y1) / box_size) * 200
+
+                manual_xyz = {
+                    "pixel_x": hand_x,
+                    "pixel_y": hand_y,
+                    "x": round(x_value, 1),
+                    "y": round(y_value, 1),
+                    "z": input_coordinates["z"]
+                }
+
+                overlay = image.copy()
+                box_radius = max(75, 75 + int(input_coordinates["z"]))
+                
+                start_point = (int(hand_x) - box_radius, int(hand_y) - box_radius)
+                end_point = (int(hand_x) + box_radius, int(hand_y) + box_radius)
+                
+                cv2.rectangle(overlay, start_point, end_point, (0, 255, 0), -1)
+
+                alpha = 0.4 
+                cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
+                
+                cv2.putText(image, "MANUAL  MODE ACTIVE", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+                cv2.putText(image, f"X: {manual_xyz['x']} | Y: {manual_xyz['y']} | Z: {manual_xyz['z']}", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+                cv2.putText(image, "Press 'k' to return to hand tracking", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+
+                base_rotation_x(manual_xyz, image)
+                terminal_state = {
+                    "left_hand": {
+                        "grab": "No hand",
+                        "wrist": {
+                            "up_down": "Not calibrated",
+                            "left_right_rotation": "Not calibrated",
+                        },
+                        "base_rotation": "No hand",
+                    },
+                    "right_hand": {
+                        "xyz": manual_xyz,
+                        "base_rotation": "Manual Mode",
+                    },
+                }
+                print(json.dumps(terminal_state), flush=True)
+
+            # --- STANDARD HAND TRACKING MODE ---
+            else:
+                if right_state is not None:
+                    right_hand = right_state.landmarks
+                    draw_hand_landmarks(image, right_hand)
+                    draw_hand_name(image, "Right Hand", right_hand, (255, 120, 120))
+
+                    right_xyz = extract_xy_coordinates_for_hand(image, right_hand)
+                    right_z, right_hand_z_base, right_z_box = extract_z_coordinate_for_hand(
+                        image,
+                        right_hand,
+                        False,
+                        right_hand_z_base,
+                    )
+
+                    if right_xyz is not None:
+                        right_xyz["z"] = right_z
+                        right_base_rotation = get_base_rotation_direction(right_xyz)
+                        image = draw_xy_coordinates_for_hand(image, right_xyz, color=(255, 0, 0))
+                        base_rotation_x(right_xyz, image)
+
+                    image = draw_z_overlay(image, right_z, right_z_box)
+                else:
+                    cv2.putText(image, "Right Hand not detected", (20, image.shape[0] - 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+                if left_state is not None:
+                    left_hand = left_state.landmarks
+                    draw_hand_landmarks(image, left_hand)
+                    draw_hand_name(image, "Left Hand", left_hand, (120, 220, 255))
+
+                    left_xy = extract_xy_coordinates_for_hand(image, left_hand)
+                    left_base_rotation = get_base_rotation_direction(left_xy)
+                    if left_xy is not None:
+                        base_rotation_x(left_xy, image)
+
+                    left_grab = "Grabbing" if is_grabbing(left_hand) else "Open"
+                    if left_hand_base_roll is not None and left_hand_base_pitch is not None:
+                        left_wrist = compute_wrist_state(
+                            left_hand,
+                            "Left",
+                            left_hand_base_roll,
+                            left_hand_base_pitch,
+                        )
+                else:
+                    cv2.putText(image, "Left Hand not detected", (20, image.shape[0] - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+                left_wrist_lr = left_wrist["roll_direction"] if left_wrist else "Not calibrated"
+                left_wrist_ud = left_wrist["pitch_direction"] if left_wrist else "Not calibrated"
+                right_xyz_text = (
+                    f"{right_xyz['x']}, {right_xyz['y']}, {right_xyz['z']}"
+                    if right_xyz is not None
+                    else "No hand"
                 )
 
-                if right_xyz is not None:
-                    right_xyz["z"] = right_z
-                    right_base_rotation = get_base_rotation_direction(right_xyz)
-                    image = draw_xy_coordinates_for_hand(image, right_xyz, color=(255, 0, 0))
-                    base_rotation_x(right_xyz, image)
+                summary_lines = [
+                    f"Left Hand | Grab: {left_grab}",
+                    f"Left Wrist | LR: {left_wrist_lr} | UD: {left_wrist_ud}",
+                    f"Right Hand | XYZ: {right_xyz_text}",
+                    f"Base Rotation | Left: {left_base_rotation} | Right: {right_base_rotation}",
+                ]
+                draw_top_summary(image, summary_lines)
 
-                image = draw_z_overlay(image, right_z, right_z_box)
-            else:
-                cv2.putText(image, "Right Hand not detected", (20, image.shape[0] - 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                if left_hand_base_roll is None or left_hand_base_pitch is None:
+                    cv2.putText(image, "Press 'b' to set left wrist base", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+                else:
+                    cv2.putText(image, "b = reset left wrist base", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
 
-            if left_state is not None:
-                left_hand = left_state.landmarks
-                draw_hand_landmarks(image, left_hand)
-                draw_hand_name(image, "Left Hand", left_hand, (120, 220, 255))
+                if right_hand_z_base is None:
+                    cv2.putText(image, "Press 'r' to set right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+                else:
+                    cv2.putText(image, "r = reset right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
 
-                left_xy = extract_xy_coordinates_for_hand(image, left_hand)
-                left_base_rotation = get_base_rotation_direction(left_xy)
-                if left_xy is not None:
-                    base_rotation_x(left_xy, image)
-
-                left_grab = "Grabbing" if is_grabbing(left_hand) else "Open"
-                if left_hand_base_roll is not None and left_hand_base_pitch is not None:
-                    left_wrist = compute_wrist_state(
-                        left_hand,
-                        "Left",
-                        left_hand_base_roll,
-                        left_hand_base_pitch,
-                    )
-            else:
-                cv2.putText(image, "Left Hand not detected", (20, image.shape[0] - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-
-            left_wrist_lr = left_wrist["roll_direction"] if left_wrist else "Not calibrated"
-            left_wrist_ud = left_wrist["pitch_direction"] if left_wrist else "Not calibrated"
-            right_xyz_text = (
-                f"{right_xyz['x']}, {right_xyz['y']}, {right_xyz['z']}"
-                if right_xyz is not None
-                else "No hand"
-            )
-
-            summary_lines = [
-                f"Left Hand | Grab: {left_grab}",
-                f"Left Wrist | LR: {left_wrist_lr} | UD: {left_wrist_ud}",
-                f"Right Hand | XYZ: {right_xyz_text}",
-                f"Base Rotation | Left: {left_base_rotation} | Right: {right_base_rotation}",
-            ]
-            draw_top_summary(image, summary_lines)
-
-            if left_hand_base_roll is None or left_hand_base_pitch is None:
-                cv2.putText(image, "Press 'b' to set left wrist base", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-            else:
-                cv2.putText(image, "b = reset left wrist base", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-
-            if right_hand_z_base is None:
-                cv2.putText(image, "Press 'r' to set right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-            else:
-                cv2.putText(image, "r = reset right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-
-            terminal_state = {
-                "left_hand": {
-                    "grab": left_grab,
-                    "wrist": {
-                        "up_down": left_wrist["pitch_direction"] if left_wrist else "Not calibrated",
-                        "left_right_rotation": left_wrist["roll_direction"] if left_wrist else "Not calibrated",
+                terminal_state = {
+                    "left_hand": {
+                        "grab": left_grab,
+                        "wrist": {
+                            "up_down": left_wrist["pitch_direction"] if left_wrist else "Not calibrated",
+                            "left_right_rotation": left_wrist["roll_direction"] if left_wrist else "Not calibrated",
+                        },
+                        "base_rotation": left_base_rotation,
                     },
-                    "base_rotation": left_base_rotation,
-                },
-                "right_hand": {
-                    "xyz": right_xyz,
-                    "base_rotation": right_base_rotation,
-                },
-            }
-            print(json.dumps(terminal_state), flush=True)
+                    "right_hand": {
+                        "xyz": right_xyz,
+                        "base_rotation": right_base_rotation,
+                    },
+                }
+                print(json.dumps(terminal_state), flush=True)
 
             if not headless:
                 cv2.imshow("Aether Main2", image)
                 key = cv2.waitKey(1) & 0xFF
 
-                if key == 27:
+                if key == 27: 
                     break
-                if key == ord("b") and left_state is not None:
-                    left_hand = left_state.landmarks
-                    left_hand_base_roll, left_hand_base_pitch = calibrate_wrist_base(left_hand, "Left")
-                if key == ord("r") and right_state is not None:
-                    right_hand = right_state.landmarks
-                    _, right_hand_z_base, _ = extract_z_coordinate_for_hand(
-                        image,
-                        right_hand,
-                        True,
-                        right_hand_z_base,
-                    )
+                    
+                # KEYBOARD CONTROLS 
+                if key == ord("k"):
+                    input_key = not input_key 
+                    if input_key:
+                        h, w, _ = image.shape
+                        input_coordinates = {"x": h/2, "y": w/2, "z": 0} 
+                        
+                if input_key:
+                    xy_speed = 30
+                    z_speed = 10
+                    if key == ord("w"):
+                        input_coordinates["y"] -= xy_speed
+                    elif key == ord("s"):
+                        input_coordinates["y"] += xy_speed
+                    elif key == ord("a"):
+                        input_coordinates["x"] -= xy_speed
+                    elif key == ord("d"):
+                        input_coordinates["x"] += xy_speed
+                    elif key == ord("h") and input_coordinates["z"] < 200:
+                        input_coordinates["z"] += z_speed
+                    elif key == ord("j") and input_coordinates["z"] > 0:
+                        input_coordinates["z"] -= z_speed
+     
+                else:
+                    if key == ord("b") and left_state is not None:
+                        left_hand = left_state.landmarks
+                        left_hand_base_roll, left_hand_base_pitch = calibrate_wrist_base(left_hand, "Left")
+                    if key == ord("r") and right_state is not None:
+                        right_hand = right_state.landmarks
+                        _, right_hand_z_base, _ = extract_z_coordinate_for_hand(
+                            image,
+                            right_hand,
+                            True,
+                            right_hand_z_base,
+                        )
 
         return 0
     except KeyboardInterrupt:
