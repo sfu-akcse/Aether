@@ -1,0 +1,14 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/workspace/install/coordinate_processor/lib/python3.10/site-packages",
+        "/workspace/install/aether_interfaces/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/workspace/install/coordinate_processor/lib/python3.10/site-packages",
+        "/workspace/install/aether_interfaces/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ]
+}

@@ -18,7 +18,14 @@ from GrabbingMotion2 import is_grabbing
 from MultiHandTracker import HandSide, MultiHandTracker
 from WristDetection import calibrate_wrist_base, compute_wrist_state
 from aether_logger import setup_logger
-from base_rotation import base_rotation_x, border_box, get_base_rotation_direction
+from base_rotation import (
+    border_box,
+    draw_base_rotation_indicators,
+    get_active_base_rotation_zones,
+    get_base_rotation_direction,
+    get_combined_base_rotation_output,
+    resolve_base_rotation_zone_owners,
+)
 
 #cd /Users/admin/Aether
 #source .host-venv/bin/activate
@@ -51,6 +58,75 @@ def resolve_camera_source():
         return int(raw_source)
     except ValueError:
         return raw_source
+
+
+def resolve_terminal_stream_interval():
+    raw_interval_ms = os.getenv("TERMINAL_STREAM_INTERVAL_MS", "").strip()
+    if raw_interval_ms:
+        try:
+            interval_ms = max(0.0, float(raw_interval_ms))
+            return interval_ms / 1000.0
+        except ValueError:
+            logger.warning(
+                "Invalid TERMINAL_STREAM_INTERVAL_MS=%r. Falling back to TERMINAL_STREAM_HZ/default.",
+                raw_interval_ms,
+            )
+
+    raw_hz = os.getenv("TERMINAL_STREAM_HZ", "10").strip()
+    try:
+        hz = float(raw_hz)
+    except ValueError:
+        logger.warning("Invalid TERMINAL_STREAM_HZ=%r. Falling back to 10 Hz.", raw_hz)
+        hz = 10.0
+
+    if hz <= 0:
+        return 0.0
+
+    return 1.0 / hz
+
+
+def interval_to_hz(interval_seconds):
+    if interval_seconds == 0.0:
+        return 0.0
+    return 1.0 / interval_seconds
+
+
+def format_terminal_stream_rate(interval_seconds):
+    hz = interval_to_hz(interval_seconds)
+    if hz == 0.0:
+        return "Terminal Stream: Max"
+    return f"Terminal Stream: {hz:.1f} Hz"
+
+
+def adjust_terminal_stream_interval(interval_seconds, direction):
+    step_sequence_hz = [1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 60.0, 0.0]
+    current_hz = interval_to_hz(interval_seconds)
+
+    try:
+        current_index = step_sequence_hz.index(current_hz)
+    except ValueError:
+        if current_hz == 0.0:
+            current_index = len(step_sequence_hz) - 1
+        else:
+            closest_hz = min(
+                step_sequence_hz[:-1],
+                key=lambda candidate_hz: abs(candidate_hz - current_hz),
+            )
+            current_index = step_sequence_hz.index(closest_hz)
+
+    next_index = max(0, min(len(step_sequence_hz) - 1, current_index + direction))
+    next_hz = step_sequence_hz[next_index]
+    if next_hz == 0.0:
+        return 0.0
+    return 1.0 / next_hz
+
+
+def is_stream_rate_increase_key(key_code):
+    return key_code in {ord("]"), ord("="), ord("+")}
+
+
+def is_stream_rate_decrease_key(key_code):
+    return key_code in {ord("["), ord("-"), ord("_")}
 
 
 def open_camera_capture(camera_source):
@@ -227,6 +303,17 @@ def draw_xy_coordinates_for_hand(image, xy_coordinates, color=(255, 0, 0)):
     return image
 
 
+def format_xyz_payload(xyz_coordinates):
+    if xyz_coordinates is None:
+        return None
+
+    return {
+        "x": xyz_coordinates["x"],
+        "y": xyz_coordinates["y"],
+        "z": xyz_coordinates.get("z"),
+    }
+
+
 def extract_z_coordinate_for_hand(image, hand_landmarks, z_reset_flag, base_value):
     h, w, _ = image.shape
     palm_indices = [0, 1, 5, 9, 13, 17]
@@ -348,10 +435,13 @@ def main():
         black_frame_count = 0
         waiting_warned = False
         placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
+        terminal_stream_interval = resolve_terminal_stream_interval()
+        last_terminal_stream_at = 0.0
 
         right_hand_z_base = None
         left_hand_base_roll = None
         left_hand_base_pitch = None
+        base_rotation_zone_owners = {"Left": None, "Right": None}
 
         while True:
             image, latest_ts = reader.get_latest()
@@ -429,7 +519,6 @@ def main():
                     right_xyz["z"] = right_z
                     right_base_rotation = get_base_rotation_direction(right_xyz)
                     image = draw_xy_coordinates_for_hand(image, right_xyz, color=(255, 50, 50))
-                    base_rotation_x(right_xyz, image)
 
                 image = draw_z_overlay(image, right_z, right_z_box)
 
@@ -442,7 +531,6 @@ def main():
 
                 if left_xy is not None:
                     left_base_rotation = get_base_rotation_direction(left_xy)
-                    base_rotation_x(left_xy, image)
 
                     left_grab = "Grabbing" if is_grabbing(left_hand) else "Open"
                     middle_base = left_hand[9]  # middle finger landmark
@@ -504,6 +592,22 @@ def main():
                 if right_xyz is not None
                 else "No hand"
             )
+            base_rotation_zone_owners = resolve_base_rotation_zone_owners(
+                base_rotation_zone_owners,
+                {
+                    "right_hand": right_base_rotation,
+                    "left_hand": left_base_rotation,
+                },
+            )
+            active_base_rotation_zones = get_active_base_rotation_zones(base_rotation_zone_owners)
+            combined_base_rotation = get_combined_base_rotation_output(
+                base_rotation_zone_owners,
+                {
+                    "right_hand": right_base_rotation,
+                    "left_hand": left_base_rotation,
+                },
+            )
+            draw_base_rotation_indicators(active_base_rotation_zones, image)
 
             terminal_state = {
                 "left_hand": {
@@ -512,18 +616,32 @@ def main():
                         "up_down": left_wrist["pitch_direction"] if left_wrist else "Not calibrated",
                         "left_right_rotation": left_wrist["roll_direction"] if left_wrist else "Not calibrated",
                     },
-                    "base_rotation": left_base_rotation,
                 },
                 "right_hand": {
-                    "xyz": right_xyz,
-                    "base_rotation": right_base_rotation,
+                    "xyz": format_xyz_payload(right_xyz),
                 },
+                "base_rotation": combined_base_rotation,
             }
-            print(json.dumps(terminal_state), flush=True)
+            now = time.monotonic()
+            if (
+                terminal_stream_interval == 0.0 or
+                now - last_terminal_stream_at >= terminal_stream_interval
+            ):
+                print(json.dumps(terminal_state), flush=True)
+                last_terminal_stream_at = now
 
             if not headless:
+                cv2.putText(
+                    image,
+                    f"{format_terminal_stream_rate(terminal_stream_interval)} | [: slower  ]: faster",
+                    (20, image.shape[0] - 20),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.55,
+                    (255, 255, 255),
+                    2,
+                )
                 cv2.imshow("Aether Main2", image)
-                key = cv2.waitKey(1) & 0xFF
+                key = cv2.waitKeyEx(1)
 
                 if key == 27:
                     break
@@ -538,6 +656,10 @@ def main():
                         True,
                         right_hand_z_base,
                     )
+                if is_stream_rate_increase_key(key):
+                    terminal_stream_interval = adjust_terminal_stream_interval(terminal_stream_interval, 1)
+                if is_stream_rate_decrease_key(key):
+                    terminal_stream_interval = adjust_terminal_stream_interval(terminal_stream_interval, -1)
 
         return 0
     except KeyboardInterrupt:
