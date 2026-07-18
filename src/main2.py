@@ -221,9 +221,9 @@ def draw_xy_coordinates_for_hand(image, xy_coordinates, color=(255, 0, 0)):
 
     hand_x = xy_coordinates["pixel_x"]
     hand_y = xy_coordinates["pixel_y"]
-    text = f"XYZ: {xy_coordinates['x']}, {xy_coordinates['y']}, {xy_coordinates.get('z', '-')}"
+    text = f"(X,Y): {xy_coordinates['x']}, {xy_coordinates['y']}"
     cv2.circle(image, (hand_x, hand_y), 8, color, -1)
-    cv2.putText(image, text, (hand_x + 12, hand_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+    cv2.putText(image, text, (hand_x + 12, hand_y), cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
     return image
 
 
@@ -259,10 +259,10 @@ def draw_z_overlay(image, z_coordinate, z_box):
 
     min_x, min_y, max_x, max_y = z_box
     if z_coordinate is None:
-        cv2.putText(image, "Press 'r' to set right-hand Z=0", (min_x, max(20, min_y - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        cv2.putText(image, "Press 'R' to set right-hand Z=0", (min_x, max(20, min_y - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
     else:
-        cv2.putText(image, f"Z: {z_coordinate}", (min_x, max(20, min_y - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-        cv2.rectangle(image, (min_x, min_y), (max_x, max_y), (255, 0, 0), 2)
+        cv2.putText(image, f"Z: {z_coordinate}", (min_x, max(20, min_y - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 255), 2)
+        cv2.rectangle(image, (min_x, min_y), (max_x, max_y), (255, 50, 50), 2)
     return image
 
 
@@ -275,7 +275,7 @@ def get_hand_label_position(image, hand_landmarks):
 
 def draw_hand_name(image, hand_name, hand_landmarks, color):
     label_x, label_y = get_hand_label_position(image, hand_landmarks)
-    cv2.putText(image, hand_name, (label_x - 45, label_y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+    cv2.putText(image, hand_name, (label_x - 45, label_y - 45), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
 
 
 def draw_top_summary(image, summary_lines):
@@ -415,7 +415,7 @@ def main():
             if right_state is not None:
                 right_hand = right_state.landmarks
                 draw_hand_landmarks(image, right_hand)
-                draw_hand_name(image, "Right Hand", right_hand, (255, 120, 120))
+                draw_hand_name(image, "Right Hand", right_hand, (255, 50, 50))
 
                 right_xyz = extract_xy_coordinates_for_hand(image, right_hand)
                 right_z, right_hand_z_base, right_z_box = extract_z_coordinate_for_hand(
@@ -428,12 +428,10 @@ def main():
                 if right_xyz is not None:
                     right_xyz["z"] = right_z
                     right_base_rotation = get_base_rotation_direction(right_xyz)
-                    image = draw_xy_coordinates_for_hand(image, right_xyz, color=(255, 0, 0))
+                    image = draw_xy_coordinates_for_hand(image, right_xyz, color=(255, 50, 50))
                     base_rotation_x(right_xyz, image)
 
                 image = draw_z_overlay(image, right_z, right_z_box)
-            else:
-                cv2.putText(image, "Right Hand not detected", (20, image.shape[0] - 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
             if left_state is not None:
                 left_hand = left_state.landmarks
@@ -441,11 +439,38 @@ def main():
                 draw_hand_name(image, "Left Hand", left_hand, (120, 220, 255))
 
                 left_xy = extract_xy_coordinates_for_hand(image, left_hand)
-                left_base_rotation = get_base_rotation_direction(left_xy)
+
                 if left_xy is not None:
+                    left_base_rotation = get_base_rotation_direction(left_xy)
                     base_rotation_x(left_xy, image)
 
-                left_grab = "Grabbing" if is_grabbing(left_hand) else "Open"
+                    left_grab = "Grabbing" if is_grabbing(left_hand) else "Open"
+                    middle_base = left_hand[9]  # middle finger landmark
+
+                    text_x = int(middle_base.x * image.shape[1]) - 175
+                    text_y = int(middle_base.y * image.shape[0]) - 25
+
+                if left_hand_base_roll is None or left_hand_base_pitch is None:
+                    cv2.putText(
+                        image,
+                        "Press 'B' to set left wrist base",
+                        (text_x, text_y),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.75,
+                        (255, 255, 255),
+                        2
+                    )
+                else:
+                    cv2.putText(
+                        image,
+                        "B = reset left wrist base",
+                        (text_x, text_y),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.75,
+                        (255, 255, 255),
+                        2
+                    )
+
                 if left_hand_base_roll is not None and left_hand_base_pitch is not None:
                     left_wrist = compute_wrist_state(
                         left_hand,
@@ -453,8 +478,24 @@ def main():
                         left_hand_base_roll,
                         left_hand_base_pitch,
                     )
-            else:
-                cv2.putText(image, "Left Hand not detected", (20, image.shape[0] - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+                summary_lines = [
+                    f"Grab: {left_grab}",
+                    f"LR: {left_wrist_lr}",
+                    f"UD: {left_wrist_ud}"
+                ]
+
+                if left_state is not None:
+                    for i, line in enumerate(summary_lines):
+                        cv2.putText(
+                            image,
+                            line,
+                            (20, 40 + i * 35),   # top-left position
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.8,
+                            (255, 255, 255),
+                            2
+                        )
 
             left_wrist_lr = left_wrist["roll_direction"] if left_wrist else "Not calibrated"
             left_wrist_ud = left_wrist["pitch_direction"] if left_wrist else "Not calibrated"
@@ -463,24 +504,6 @@ def main():
                 if right_xyz is not None
                 else "No hand"
             )
-
-            summary_lines = [
-                f"Left Hand | Grab: {left_grab}",
-                f"Left Wrist | LR: {left_wrist_lr} | UD: {left_wrist_ud}",
-                f"Right Hand | XYZ: {right_xyz_text}",
-                f"Base Rotation | Left: {left_base_rotation} | Right: {right_base_rotation}",
-            ]
-            draw_top_summary(image, summary_lines)
-
-            if left_hand_base_roll is None or left_hand_base_pitch is None:
-                cv2.putText(image, "Press 'b' to set left wrist base", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-            else:
-                cv2.putText(image, "b = reset left wrist base", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-
-            if right_hand_z_base is None:
-                cv2.putText(image, "Press 'r' to set right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-            else:
-                cv2.putText(image, "r = reset right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
 
             terminal_state = {
                 "left_hand": {
