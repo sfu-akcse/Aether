@@ -69,10 +69,4 @@ def label_z_coordinate(image, detection_result, z_value, base_value):
     box_area = box_width * box_height
 
     # Draw text and boxes
-    if z_coordinate is None:
-        cv2.putText(image, "Press 'r' to set Z=0", (min_x, min_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-    else: 
-        cv2.putText(image, f"Z: {z_coordinate}", (min_x, min_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-        cv2.rectangle(image, (min_x, min_y), (max_x, max_y), (255, 0, 0), 2)
-
     return image, base_value
