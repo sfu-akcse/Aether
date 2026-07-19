@@ -443,16 +443,6 @@ def main():
                     base_rotation_x(right_xyz, image)
 
                 image = draw_z_overlay(image, right_z, right_z_box)
-            else:
-                xyz_smoother.reset()  # discard history when hand leaves frame
-
-            # pre-initialize so summary_lines inside the block can reference these safely
-            if left_state is None:
-                grab_debouncer.reset()  # discard history when hand leaves frame
-                wrist_smoother.reset()
-
-            left_wrist_lr = left_wrist["roll_direction"] if left_wrist else "Not calibrated"
-            left_wrist_ud = left_wrist["pitch_direction"] if left_wrist else "Not calibrated"
 
             if left_state is not None:
                 left_hand = left_state.landmarks
@@ -465,9 +455,7 @@ def main():
                     left_base_rotation = get_base_rotation_direction(left_xy)
                     base_rotation_x(left_xy, image)
 
-                    raw_is_grabbing = is_grabbing(left_hand)
-                    raw_left_grab = "Grabbing" if raw_is_grabbing else "Open"  # snapshot before debounce
-                    left_grab = grab_debouncer.update(raw_is_grabbing)         # debounced grab
+                    left_grab = "Grabbing" if is_grabbing(left_hand) else "Open"
                     middle_base = left_hand[9]  # middle finger landmark
 
                     text_x = int(middle_base.x * image.shape[1]) - 175
@@ -501,13 +489,6 @@ def main():
                         left_hand_base_roll,
                         left_hand_base_pitch,
                     )
-                    raw_left_wrist = {                                       # snapshot before EMA
-                        "roll_delta":      raw_wrist["roll_delta"],
-                        "pitch_delta":     raw_wrist["pitch_delta"],
-                        "roll_direction":  raw_wrist["roll_direction"],
-                        "pitch_direction": raw_wrist["pitch_direction"],
-                    }
-                    left_wrist = wrist_smoother.update(raw_wrist)           # apply EMA to roll/pitch
 
                 summary_lines = [
                     f"Grab: {left_grab}",
@@ -534,24 +515,6 @@ def main():
                 if right_xyz is not None
                 else "No hand"
             )
-
-            summary_lines = [
-                f"Left Hand | Grab: {left_grab}",
-                f"Left Wrist | LR: {left_wrist_lr} | UD: {left_wrist_ud}",
-                f"Right Hand | XYZ: {right_xyz_text}",
-                f"Base Rotation | Left: {left_base_rotation} | Right: {right_base_rotation}",
-            ]
-            draw_top_summary(image, summary_lines)
-
-            if left_hand_base_roll is None or left_hand_base_pitch is None:
-                cv2.putText(image, "Press 'b' to set left wrist base", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-            else:
-                cv2.putText(image, "b = reset left wrist base", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-
-            if right_hand_z_base is None:
-                cv2.putText(image, "Press 'r' to set right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-            else:
-                cv2.putText(image, "r = reset right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
 
             terminal_state = {
                 "left_hand": {
