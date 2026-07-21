@@ -18,6 +18,8 @@ from GrabbingMotion2 import is_grabbing
 from MultiHandTracker import HandSide, MultiHandTracker
 from WristDetection import calibrate_wrist_base, compute_wrist_state
 from aether_logger import setup_logger
+from base_rotation import base_rotation_x, border_box, get_base_rotation_direction
+from smoothing import GrabDebouncer, WristSmoother, XYZSmoother
 from base_rotation import (
     border_box,
     draw_base_rotation_indicators,
@@ -443,6 +445,11 @@ def main():
         left_hand_base_pitch = None
         base_rotation_zone_owners = {"Left": None, "Right": None}
 
+        # --- Motion smoothing (see src/smoothing.py) ---
+        xyz_smoother   = XYZSmoother()    # EMA for right-hand X, Y, Z
+        wrist_smoother = WristSmoother()  # EMA for left-hand roll/pitch
+        grab_debouncer = GrabDebouncer()  # debounce for left-hand grab
+
         while True:
             image, latest_ts = reader.get_latest()
 
@@ -496,11 +503,14 @@ def main():
             right_z = None
             right_z_box = None
             right_base_rotation = "No hand"
+            raw_right_xyz = None      # raw (pre-smoothing) for comparison output
 
             left_xy = None
             left_grab = "No hand"
             left_wrist = None
             left_base_rotation = "No hand"
+            raw_left_grab = "No hand" # raw (pre-debounce) for comparison output
+            raw_left_wrist = None     # raw (pre-EMA) for comparison output
 
             if right_state is not None:
                 right_hand = right_state.landmarks
@@ -517,6 +527,8 @@ def main():
 
                 if right_xyz is not None:
                     right_xyz["z"] = right_z
+                    raw_right_xyz = {k: right_xyz[k] for k in ("x", "y", "z")}  # snapshot before EMA
+                    right_xyz = xyz_smoother.update(right_xyz)  # apply EMA smoothing
                     right_base_rotation = get_base_rotation_direction(right_xyz)
                     image = draw_xy_coordinates_for_hand(image, right_xyz, color=(255, 50, 50))
 
@@ -560,7 +572,7 @@ def main():
                     )
 
                 if left_hand_base_roll is not None and left_hand_base_pitch is not None:
-                    left_wrist = compute_wrist_state(
+                    raw_wrist = compute_wrist_state(
                         left_hand,
                         "Left",
                         left_hand_base_roll,
@@ -620,6 +632,20 @@ def main():
                 "right_hand": {
                     "xyz": format_xyz_payload(right_xyz),
                 },
+                # Raw (pre-smoothing) values for debugging and tuning.
+                # Suppress with: export LOG_RAW=false
+                "raw": {
+                    "right_hand": {"xyz": raw_right_xyz},
+                    "left_hand": {
+                        "grab": raw_left_grab,
+                        "wrist": {
+                            "up_down": raw_left_wrist["pitch_direction"] if raw_left_wrist else "Not calibrated",
+                            "left_right_rotation": raw_left_wrist["roll_direction"] if raw_left_wrist else "Not calibrated",
+                            "roll_delta": round(raw_left_wrist["roll_delta"], 2) if raw_left_wrist else None,
+                            "pitch_delta": round(raw_left_wrist["pitch_delta"], 2) if raw_left_wrist else None,
+                        },
+                    },
+                } if os.getenv("LOG_RAW", "true").lower() != "false" else None,
                 "base_rotation": combined_base_rotation,
             }
             now = time.monotonic()
