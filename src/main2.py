@@ -19,6 +19,7 @@ from MultiHandTracker import HandSide, MultiHandTracker
 from WristDetection import calibrate_wrist_base, compute_wrist_state
 from aether_logger import setup_logger
 from base_rotation import base_rotation_x, border_box, get_base_rotation_direction
+from manual_mode import render_manual_mode, handle_manual_input
 
 #cd /Users/admin/Aether
 #source .host-venv/bin/activate
@@ -354,7 +355,10 @@ def main():
         left_hand_base_pitch = None
         
         input_key = False 
-        input_coordinates = {"x": 0, "y": 0, "z": 0} # Start in center of screen
+        input_coordinates = {"x": 0, "y": 0, "z": 0} 
+        wrist_turn = "center"
+        up_down = "center"
+        grab = False
 
         while True:
             image, latest_ts = reader.get_latest()
@@ -418,61 +422,7 @@ def main():
 
             # MANUAL MODE
             if input_key:
-                h, w, _ = image.shape
-                box_size = min(h, w)
-                x1 = (w - box_size) // 2
-                y1 = (h - box_size) // 2
-                x2 = x1 + box_size
-                y2 = y1 + box_size
-
-                hand_x = input_coordinates["x"]
-                hand_y = input_coordinates["y"]
-
-                clamped_x = max(x1, min(hand_x, x2))
-                clamped_y = max(y1, min(hand_y, y2))
-
-                x_value = ((clamped_x - x1) / box_size) * 200 - 100
-                y_value = 100 - ((clamped_y - y1) / box_size) * 200
-
-                manual_xyz = {
-                    "pixel_x": hand_x,
-                    "pixel_y": hand_y,
-                    "x": round(x_value, 1),
-                    "y": round(y_value, 1),
-                    "z": input_coordinates["z"]
-                }
-
-                overlay = image.copy()
-                box_radius = max(75, 75 + int(input_coordinates["z"]))
-                
-                start_point = (int(hand_x) - box_radius, int(hand_y) - box_radius)
-                end_point = (int(hand_x) + box_radius, int(hand_y) + box_radius)
-                
-                cv2.rectangle(overlay, start_point, end_point, (0, 255, 0), -1)
-
-                alpha = 0.4 
-                cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
-                
-                cv2.putText(image, "MANUAL  MODE ACTIVE", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
-                cv2.putText(image, f"X: {manual_xyz['x']} | Y: {manual_xyz['y']} | Z: {manual_xyz['z']}", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
-                cv2.putText(image, "Press 'k' to return to hand tracking", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
-
-                base_rotation_x(manual_xyz, image)
-                terminal_state = {
-                    "left_hand": {
-                        "grab": "No hand",
-                        "wrist": {
-                            "up_down": "Not calibrated",
-                            "left_right_rotation": "Not calibrated",
-                        },
-                        "base_rotation": "No hand",
-                    },
-                    "right_hand": {
-                        "xyz": manual_xyz,
-                        "base_rotation": "Manual Mode",
-                    },
-                }
-                print(json.dumps(terminal_state), flush=True)
+                image = render_manual_mode(image, input_coordinates, up_down, wrist_turn, grab)
 
             # --- STANDARD HAND TRACKING MODE ---
             else:
@@ -564,6 +514,7 @@ def main():
 
             if not headless:
                 cv2.imshow("Aether Main2", image)
+                
                 key = cv2.waitKey(1) & 0xFF
 
                 if key == 27: 
@@ -577,20 +528,10 @@ def main():
                         input_coordinates = {"x": h/2, "y": w/2, "z": 0} 
                         
                 if input_key:
-                    xy_speed = 30
-                    z_speed = 10
-                    if key == ord("w"):
-                        input_coordinates["y"] -= xy_speed
-                    elif key == ord("s"):
-                        input_coordinates["y"] += xy_speed
-                    elif key == ord("a"):
-                        input_coordinates["x"] -= xy_speed
-                    elif key == ord("d"):
-                        input_coordinates["x"] += xy_speed
-                    elif key == ord("h") and input_coordinates["z"] < 200:
-                        input_coordinates["z"] += z_speed
-                    elif key == ord("j") and input_coordinates["z"] > 0:
-                        input_coordinates["z"] -= z_speed
+                    ex_key = cv2.waitKeyEx(1)
+                    input_coordinates, up_down, wrist_turn, grab = handle_manual_input(
+                        ex_key, input_coordinates, up_down, wrist_turn, grab
+                    )
      
                 else:
                     if key == ord("b") and left_state is not None:
