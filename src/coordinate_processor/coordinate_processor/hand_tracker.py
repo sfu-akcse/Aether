@@ -257,6 +257,87 @@ def extract_z_coordinate_for_hand(image, hand_landmarks, z_reset_flag, base_valu
     return max(0, z_offset), base_value, (min_x, min_y, max_x, max_y)
 
 
+def calibrate_z_side(hand_landmarks) -> float:
+    """
+    Save the current wrist depth as the Z = 0 base point for side-view detection.
+
+    MediaPipe landmark.z is a depth value in roughly the same scale as landmark.x.
+    Call this once when the user signals their neutral hand position (e.g. on key press).
+
+    Args:
+        hand_landmarks: list of 21 NormalizedLandmark objects from MediaPipe.
+
+    Returns:
+        The wrist landmark.z value to store as base_z.
+    """
+    return hand_landmarks[0].z  # index 0 = wrist
+
+
+# How many normalized landmark units map to a Z output of 100.
+# Decrease to make Z more sensitive, increase to reduce sensitivity.
+Z_SIDE_FULL_SCALE = 0.3
+
+
+def extract_z_side(hand_landmarks, base_z: float | None) -> int | None:
+    """
+    Compute the Z offset from the saved base point using wrist depth.
+
+    Unlike extract_z_coordinate_for_hand() (which uses palm bounding-box area),
+    this function uses the wrist landmark's depth value to detect actual
+    forward/backward movement:
+        positive → hand moved toward the camera (forward)
+        negative → hand moved away from the camera (backward)
+        None     → base point not yet set
+
+    Args:
+        hand_landmarks: list of 21 NormalizedLandmark objects from MediaPipe.
+        base_z:         value returned by calibrate_z_side(). None if not yet set.
+
+    Returns:
+        Integer Z value (roughly -100 to +100), or None if not calibrated.
+    """
+    if base_z is None:
+        return None
+
+    # MediaPipe z is negative toward the camera, so negate so that
+    # moving toward camera = positive Z (matches XY convention).
+    delta = -(hand_landmarks[0].z - base_z)
+    return int((delta / Z_SIDE_FULL_SCALE) * 100)
+
+
+def draw_z_side_overlay(image, z_value, hand_landmarks) -> object:
+    """
+    Draw the side-view Z value on the frame near the wrist landmark.
+
+    Args:
+        image:          OpenCV BGR frame.
+        z_value:        Value from extract_z_side(), or None if not calibrated.
+        hand_landmarks: list of 21 NormalizedLandmark objects from MediaPipe.
+
+    Returns:
+        Annotated image.
+    """
+    h, w, _ = image.shape
+    wrist_x = int(hand_landmarks[0].x * w)
+    wrist_y = int(hand_landmarks[0].y * h)
+
+    if z_value is None:
+        cv2.putText(
+            image,
+            "Press 'z' to set Z base",
+            (wrist_x + 10, wrist_y),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2,
+        )
+    else:
+        cv2.putText(
+            image,
+            f"Z (side): {z_value}",
+            (wrist_x + 10, wrist_y),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 255), 2,
+        )
+    return image
+
+
 def draw_z_overlay(image, z_coordinate, z_box):
     if z_box is None:
         return image
