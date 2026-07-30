@@ -160,6 +160,7 @@ class LatestFrameReader:
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._is_url = isinstance(camera_source, str) and camera_source.startswith(("http://", "https://"))
         self._last_warn_at = 0.0
+        self._frame_count = 0
 
     def start(self):
         self._running = True
@@ -232,7 +233,18 @@ class LatestFrameReader:
         with self._lock:
             if self._latest_frame is None:
                 return None, 0.0
+            self._frame_count += 1
             return self._latest_frame.copy(), self._latest_ts
+
+    # Resets frame_count to keep fps output real-time
+    def reset_frame_count(self):
+        self._frame_count = 0
+
+    # Getter function for _frame_count variable
+    # Default fps time window is ~1.0s
+    # NOTE: Divide _frame_count by the elapsed time to get fps for non default time windows
+    def get_fps(self):
+        return self._frame_count
 
     def stop(self):
         self._running = False
@@ -402,6 +414,8 @@ def main():
         camera_source = resolve_camera_source()
         cap = None
         headless = is_headless_environment()
+        last_fps_time = time.time()
+        fps = 0.0
 
         if isinstance(camera_source, int):
             cap = open_camera_capture(camera_source)
@@ -656,11 +670,30 @@ def main():
                 print(json.dumps(terminal_state), flush=True)
                 last_terminal_stream_at = now
 
+            # Outputs the number of frames processed in LatestFrameReader every 1.0s
+            # frame_count variable in LatestFrameReader is reset to keep fps accurate
+            current_time = time.time()
+            elapsed_time = current_time - last_fps_time
+            if(elapsed_time >= 1.0):
+                fps = reader.get_fps()
+                reader.reset_frame_count()
+                last_fps_time = current_time
+
             if not headless:
                 cv2.putText(
                     image,
                     f"{format_terminal_stream_rate(terminal_stream_interval)} | [: slower  ]: faster",
                     (20, image.shape[0] - 20),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.55,
+                    (255, 255, 255),
+                    2,
+                )
+                # Displays the previously calculated fps on the cv2 video capture
+                cv2.putText(
+                    image,
+                    "FPS: " + str(fps),
+                    (20, image.shape[0] - 40),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.55,
                     (255, 255, 255),
