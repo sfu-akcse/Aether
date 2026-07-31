@@ -30,21 +30,40 @@ from main2 import (
     draw_z_overlay,
     extract_xy_coordinates_for_hand,
     extract_z_coordinate_for_hand,
+    format_display_number,
     format_xyz_payload,
     format_terminal_stream_rate,
     is_headless_environment,
     is_stream_rate_decrease_key,
     is_stream_rate_increase_key,
     open_camera_capture,
+    resolve_terminal_stream_interval,
     resolve_camera_source,
 )
+from smoothing import GrabDebouncer, WristSmoother, XYZSmoother
+
+#CAMERA_SOURCE=http://host.docker.internal:8080/video.mjpg \                 
+#TCP_BIND_HOST=0.0.0.0 \
+#TCP_PORT=8765 \
+#python3 src/tcp.py
 
 logger = setup_logger("aether-system.log", "AETHER.VISION.TCP")
 
 
-def resolve_tcp_stream_interval():
-    # Match main2's idea of a send interval, but for TCP instead of terminal.
-    raw_hz = os.getenv("TCP_STREAM_HZ", "30").strip()
+def resolve_tcp_stream_interval(default_hz="30"):
+    # Match main2's interval handling, but allow a TCP-specific default rate.
+    raw_interval_ms = os.getenv("TCP_STREAM_INTERVAL_MS", "").strip()
+    if raw_interval_ms:
+        try:
+            interval_ms = max(0.0, float(raw_interval_ms))
+            return interval_ms / 1000.0
+        except ValueError:
+            logger.warning(
+                "Invalid TCP_STREAM_INTERVAL_MS=%r. Falling back to TCP_STREAM_HZ/default.",
+                raw_interval_ms,
+            )
+
+    raw_hz = os.getenv("TCP_STREAM_HZ", default_hz).strip()
     try:
         hz = float(raw_hz)
     except ValueError:
@@ -173,8 +192,8 @@ def main():
 
         tcp_host = resolve_tcp_bind_host()
         tcp_port = resolve_tcp_port()
-        tcp_stream_interval = resolve_tcp_stream_interval()
-        last_send_at = 0.0
+        stream_interval = resolve_terminal_stream_interval()
+        last_stream_at = 0.0
 
         tcp_server = JsonTcpServer(tcp_host, tcp_port)
         logger.info("TCP server listening on %s:%s", tcp_host, tcp_port)
@@ -189,6 +208,10 @@ def main():
         left_hand_base_pitch = None
         base_rotation_zone_owners = {"Left": None, "Right": None}
 
+        xyz_smoother = XYZSmoother()
+        wrist_smoother = WristSmoother()
+        grab_debouncer = GrabDebouncer()
+
         while True:
             tcp_server.poll_for_client()
             image, latest_ts = reader.get_latest()
@@ -202,9 +225,9 @@ def main():
                     if key == 27:
                         break
                     if is_stream_rate_increase_key(key):
-                        tcp_stream_interval = adjust_terminal_stream_interval(tcp_stream_interval, 1)
+                        stream_interval = adjust_terminal_stream_interval(stream_interval, 1)
                     if is_stream_rate_decrease_key(key):
-                        tcp_stream_interval = adjust_terminal_stream_interval(tcp_stream_interval, -1)
+                        stream_interval = adjust_terminal_stream_interval(stream_interval, -1)
                 else:
                     time.sleep(0.01)
                 continue
@@ -248,10 +271,13 @@ def main():
             right_z = None
             right_z_box = None
             right_base_rotation = "No hand"
+            raw_right_xyz = None
 
             left_grab = "No hand"
             left_wrist = None
             left_base_rotation = "No hand"
+            raw_left_grab = "No hand"
+            raw_left_wrist = None
 
             if right_state is not None:
                 right_hand = right_state.landmarks
@@ -268,10 +294,20 @@ def main():
 
                 if right_xyz is not None:
                     right_xyz["z"] = right_z
+                    raw_right_xyz = {k: right_xyz[k] for k in ("x", "y", "z")}
+                    right_xyz = xyz_smoother.update(right_xyz)
                     right_base_rotation = get_base_rotation_direction(right_xyz)
-                    image = draw_xy_coordinates_for_hand(image, right_xyz, color=(255, 0, 0))
+                    image = draw_xy_coordinates_for_hand(image, right_xyz, color=(255, 50, 50))
 
-                image = draw_z_overlay(image, right_z, right_z_box)
+                displayed_right_z = right_xyz["z"] if right_xyz is not None else right_z
+                image = draw_z_overlay(
+                    image,
+                    displayed_right_z,
+                    right_z_box,
+                    right_hand_z_base is not None,
+                )
+            else:
+                xyz_smoother.reset()
 
             if left_state is not None:
                 left_hand = left_state.landmarks
@@ -282,7 +318,8 @@ def main():
                 if left_xy is not None:
                     left_base_rotation = get_base_rotation_direction(left_xy)
 
-                    left_grab = "Grabbing" if is_grabbing(left_hand) else "Open"
+                    raw_left_grab = "Grabbing" if is_grabbing(left_hand) else "Open"
+                    left_grab = grab_debouncer.update(raw_left_grab == "Grabbing")
                     middle_base = left_hand[9]
                     text_x = int(middle_base.x * image.shape[1]) - 175
                     text_y = int(middle_base.y * image.shape[0]) - 25
@@ -309,17 +346,23 @@ def main():
                     )
 
                 if left_hand_base_roll is not None and left_hand_base_pitch is not None:
-                    left_wrist = compute_wrist_state(
+                    raw_left_wrist = compute_wrist_state(
                         left_hand,
                         "Left",
                         left_hand_base_roll,
                         left_hand_base_pitch,
                     )
+                    left_wrist = wrist_smoother.update(raw_left_wrist)
+            else:
+                wrist_smoother.reset()
+                grab_debouncer.reset()
 
             left_wrist_lr = left_wrist["roll_direction"] if left_wrist else "Not calibrated"
             left_wrist_ud = left_wrist["pitch_direction"] if left_wrist else "Not calibrated"
             right_xyz_text = (
-                f"{right_xyz['x']}, {right_xyz['y']}, {right_xyz['z']}"
+                f"{format_display_number(right_xyz['x'])}, "
+                f"{format_display_number(right_xyz['y'])}, "
+                f"{format_display_number(right_xyz['z'])}"
                 if right_xyz is not None
                 else "No hand"
             )
@@ -369,18 +412,37 @@ def main():
                 "right_hand": {
                     "xyz": format_xyz_payload(right_xyz),
                 },
+                "raw": {
+                    "right_hand": {"xyz": raw_right_xyz},
+                    "left_hand": {
+                        "grab": raw_left_grab,
+                        "wrist": {
+                            "up_down": raw_left_wrist["pitch_direction"] if raw_left_wrist else "Not calibrated",
+                            "left_right_rotation": raw_left_wrist["roll_direction"] if raw_left_wrist else "Not calibrated",
+                            "roll_delta": round(raw_left_wrist["roll_delta"], 2) if raw_left_wrist else None,
+                            "pitch_delta": round(raw_left_wrist["pitch_delta"], 2) if raw_left_wrist else None,
+                        },
+                    },
+                } if os.getenv("LOG_RAW", "true").lower() != "false" else None,
                 "base_rotation": combined_base_rotation,
             }
 
-            send_now = time.monotonic()
-            if tcp_stream_interval == 0.0 or send_now - last_send_at >= tcp_stream_interval:
+            stream_now = time.monotonic()
+            if (
+                stream_interval == 0.0 or
+                stream_now - last_stream_at >= stream_interval
+            ):
+                print(json.dumps(terminal_state), flush=True)
                 tcp_server.send_json(terminal_state)
-                last_send_at = send_now
+                last_stream_at = stream_now
 
             if not headless:
                 cv2.putText(
                     image,
-                    f"{format_terminal_stream_rate(tcp_stream_interval).replace('Terminal Stream', 'TCP Stream')} | TCP: {tcp_server.client_status()} | [: slower  ]: faster",
+                    (
+                        f"{format_terminal_stream_rate(stream_interval)} | "
+                        f"TCP: {tcp_server.client_status()} | [: slower  ]: faster"
+                    ),
                     (20, image.shape[0] - 20),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.55,
@@ -404,9 +466,9 @@ def main():
                         right_hand_z_base,
                     )
                 if is_stream_rate_increase_key(key):
-                    tcp_stream_interval = adjust_terminal_stream_interval(tcp_stream_interval, 1)
+                    stream_interval = adjust_terminal_stream_interval(stream_interval, 1)
                 if is_stream_rate_decrease_key(key):
-                    tcp_stream_interval = adjust_terminal_stream_interval(tcp_stream_interval, -1)
+                    stream_interval = adjust_terminal_stream_interval(stream_interval, -1)
 
         return 0
     except KeyboardInterrupt:
