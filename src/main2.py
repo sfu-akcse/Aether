@@ -19,6 +19,15 @@ from MultiHandTracker import HandSide, MultiHandTracker
 from WristDetection import calibrate_wrist_base, compute_wrist_state
 from aether_logger import setup_logger
 from base_rotation import base_rotation_x, border_box, get_base_rotation_direction
+from smoothing import GrabDebouncer, WristSmoother, XYZSmoother
+from base_rotation import (
+    border_box,
+    draw_base_rotation_indicators,
+    get_active_base_rotation_zones,
+    get_base_rotation_direction,
+    get_combined_base_rotation_output,
+    resolve_base_rotation_zone_owners,
+)
 
 #cd /Users/admin/Aether
 #source .host-venv/bin/activate
@@ -51,6 +60,75 @@ def resolve_camera_source():
         return int(raw_source)
     except ValueError:
         return raw_source
+
+
+def resolve_terminal_stream_interval():
+    raw_interval_ms = os.getenv("TERMINAL_STREAM_INTERVAL_MS", "").strip()
+    if raw_interval_ms:
+        try:
+            interval_ms = max(0.0, float(raw_interval_ms))
+            return interval_ms / 1000.0
+        except ValueError:
+            logger.warning(
+                "Invalid TERMINAL_STREAM_INTERVAL_MS=%r. Falling back to TERMINAL_STREAM_HZ/default.",
+                raw_interval_ms,
+            )
+
+    raw_hz = os.getenv("TERMINAL_STREAM_HZ", "10").strip()
+    try:
+        hz = float(raw_hz)
+    except ValueError:
+        logger.warning("Invalid TERMINAL_STREAM_HZ=%r. Falling back to 10 Hz.", raw_hz)
+        hz = 10.0
+
+    if hz <= 0:
+        return 0.0
+
+    return 1.0 / hz
+
+
+def interval_to_hz(interval_seconds):
+    if interval_seconds == 0.0:
+        return 0.0
+    return 1.0 / interval_seconds
+
+
+def format_terminal_stream_rate(interval_seconds):
+    hz = interval_to_hz(interval_seconds)
+    if hz == 0.0:
+        return "Terminal Stream: Max"
+    return f"Terminal Stream: {hz:.1f} Hz"
+
+
+def adjust_terminal_stream_interval(interval_seconds, direction):
+    step_sequence_hz = [1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 60.0, 0.0]
+    current_hz = interval_to_hz(interval_seconds)
+
+    try:
+        current_index = step_sequence_hz.index(current_hz)
+    except ValueError:
+        if current_hz == 0.0:
+            current_index = len(step_sequence_hz) - 1
+        else:
+            closest_hz = min(
+                step_sequence_hz[:-1],
+                key=lambda candidate_hz: abs(candidate_hz - current_hz),
+            )
+            current_index = step_sequence_hz.index(closest_hz)
+
+    next_index = max(0, min(len(step_sequence_hz) - 1, current_index + direction))
+    next_hz = step_sequence_hz[next_index]
+    if next_hz == 0.0:
+        return 0.0
+    return 1.0 / next_hz
+
+
+def is_stream_rate_increase_key(key_code):
+    return key_code in {ord("]"), ord("="), ord("+")}
+
+
+def is_stream_rate_decrease_key(key_code):
+    return key_code in {ord("["), ord("-"), ord("_")}
 
 
 def open_camera_capture(camera_source):
@@ -221,10 +299,31 @@ def draw_xy_coordinates_for_hand(image, xy_coordinates, color=(255, 0, 0)):
 
     hand_x = xy_coordinates["pixel_x"]
     hand_y = xy_coordinates["pixel_y"]
-    text = f"XYZ: {xy_coordinates['x']}, {xy_coordinates['y']}, {xy_coordinates.get('z', '-')}"
+    text = f"(X,Y): {format_display_number(xy_coordinates['x'])}, {format_display_number(xy_coordinates['y'])}"
     cv2.circle(image, (hand_x, hand_y), 8, color, -1)
-    cv2.putText(image, text, (hand_x + 12, hand_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+    cv2.putText(image, text, (hand_x + 12, hand_y), cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
     return image
+
+
+def format_display_number(value):
+    if value is None:
+        return "None"
+
+    rounded = round(float(value), 1)
+    if rounded.is_integer():
+        return str(int(rounded))
+    return f"{rounded:.1f}"
+
+
+def format_xyz_payload(xyz_coordinates):
+    if xyz_coordinates is None:
+        return None
+
+    return {
+        "x": round(float(xyz_coordinates["x"]), 1),
+        "y": round(float(xyz_coordinates["y"]), 1),
+        "z": None if xyz_coordinates.get("z") is None else round(float(xyz_coordinates["z"]), 1),
+    }
 
 
 def extract_z_coordinate_for_hand(image, hand_landmarks, z_reset_flag, base_value):
@@ -253,16 +352,17 @@ def extract_z_coordinate_for_hand(image, hand_landmarks, z_reset_flag, base_valu
     return max(0, z_offset), base_value, (min_x, min_y, max_x, max_y)
 
 
-def draw_z_overlay(image, z_coordinate, z_box):
+def draw_z_overlay(image, z_coordinate, z_box, z_is_calibrated):
     if z_box is None:
         return image
 
     min_x, min_y, max_x, max_y = z_box
-    if z_coordinate is None:
-        cv2.putText(image, "Press 'r' to set right-hand Z=0", (min_x, max(20, min_y - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    if not z_is_calibrated:
+        cv2.putText(image, "Press 'R' to set right-hand Z=0", (min_x, max(20, min_y - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
     else:
-        cv2.putText(image, f"Z: {z_coordinate}", (min_x, max(20, min_y - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-        cv2.rectangle(image, (min_x, min_y), (max_x, max_y), (255, 0, 0), 2)
+        cv2.putText(image, f"Z: {format_display_number(z_coordinate)}", (min_x, max(20, min_y - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 255), 2)
+        cv2.putText(image, "R = reset right-hand Z=0", (min_x, min(image.shape[0] - 10, max_y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
+        cv2.rectangle(image, (min_x, min_y), (max_x, max_y), (255, 50, 50), 2)
     return image
 
 
@@ -275,7 +375,7 @@ def get_hand_label_position(image, hand_landmarks):
 
 def draw_hand_name(image, hand_name, hand_landmarks, color):
     label_x, label_y = get_hand_label_position(image, hand_landmarks)
-    cv2.putText(image, hand_name, (label_x - 45, label_y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+    cv2.putText(image, hand_name, (label_x - 45, label_y - 45), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
 
 
 def draw_top_summary(image, summary_lines):
@@ -348,10 +448,18 @@ def main():
         black_frame_count = 0
         waiting_warned = False
         placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
+        terminal_stream_interval = resolve_terminal_stream_interval()
+        last_terminal_stream_at = 0.0
 
         right_hand_z_base = None
         left_hand_base_roll = None
         left_hand_base_pitch = None
+        base_rotation_zone_owners = {"Left": None, "Right": None}
+
+        # --- Motion smoothing (see src/smoothing.py) ---
+        xyz_smoother   = XYZSmoother()    # EMA for right-hand X, Y, Z
+        wrist_smoother = WristSmoother()  # EMA for left-hand roll/pitch
+        grab_debouncer = GrabDebouncer()  # debounce for left-hand grab
 
         while True:
             image, latest_ts = reader.get_latest()
@@ -406,16 +514,19 @@ def main():
             right_z = None
             right_z_box = None
             right_base_rotation = "No hand"
+            raw_right_xyz = None      # raw (pre-smoothing) for comparison output
 
             left_xy = None
             left_grab = "No hand"
             left_wrist = None
             left_base_rotation = "No hand"
+            raw_left_grab = "No hand" # raw (pre-debounce) for comparison output
+            raw_left_wrist = None     # raw (pre-EMA) for comparison output
 
             if right_state is not None:
                 right_hand = right_state.landmarks
                 draw_hand_landmarks(image, right_hand)
-                draw_hand_name(image, "Right Hand", right_hand, (255, 120, 120))
+                draw_hand_name(image, "Right Hand", right_hand, (255, 50, 50))
 
                 right_xyz = extract_xy_coordinates_for_hand(image, right_hand)
                 right_z, right_hand_z_base, right_z_box = extract_z_coordinate_for_hand(
@@ -427,13 +538,20 @@ def main():
 
                 if right_xyz is not None:
                     right_xyz["z"] = right_z
+                    raw_right_xyz = {k: right_xyz[k] for k in ("x", "y", "z")}  # snapshot before EMA
+                    right_xyz = xyz_smoother.update(right_xyz)  # apply EMA smoothing
                     right_base_rotation = get_base_rotation_direction(right_xyz)
-                    image = draw_xy_coordinates_for_hand(image, right_xyz, color=(255, 0, 0))
-                    base_rotation_x(right_xyz, image)
+                    image = draw_xy_coordinates_for_hand(image, right_xyz, color=(255, 50, 50))
 
-                image = draw_z_overlay(image, right_z, right_z_box)
+                displayed_right_z = right_xyz["z"] if right_xyz is not None else right_z
+                image = draw_z_overlay(
+                    image,
+                    displayed_right_z,
+                    right_z_box,
+                    right_hand_z_base is not None,
+                )
             else:
-                cv2.putText(image, "Right Hand not detected", (20, image.shape[0] - 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                xyz_smoother.reset()
 
             if left_state is not None:
                 left_hand = left_state.landmarks
@@ -441,46 +559,93 @@ def main():
                 draw_hand_name(image, "Left Hand", left_hand, (120, 220, 255))
 
                 left_xy = extract_xy_coordinates_for_hand(image, left_hand)
-                left_base_rotation = get_base_rotation_direction(left_xy)
-                if left_xy is not None:
-                    base_rotation_x(left_xy, image)
 
-                left_grab = "Grabbing" if is_grabbing(left_hand) else "Open"
+                if left_xy is not None:
+                    left_base_rotation = get_base_rotation_direction(left_xy)
+
+                    raw_left_grab = "Grabbing" if is_grabbing(left_hand) else "Open"
+                    left_grab = grab_debouncer.update(raw_left_grab == "Grabbing")
+                    middle_base = left_hand[9]  # middle finger landmark
+
+                    text_x = int(middle_base.x * image.shape[1]) - 175
+                    text_y = int(middle_base.y * image.shape[0]) - 25
+
+                if left_hand_base_roll is None or left_hand_base_pitch is None:
+                    cv2.putText(
+                        image,
+                        "Press 'B' to set left wrist base",
+                        (text_x, text_y),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.75,
+                        (255, 255, 255),
+                        2
+                    )
+                else:
+                    cv2.putText(
+                        image,
+                        "B = reset left wrist base",
+                        (text_x, text_y),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.75,
+                        (255, 255, 255),
+                        2
+                    )
+
                 if left_hand_base_roll is not None and left_hand_base_pitch is not None:
-                    left_wrist = compute_wrist_state(
+                    raw_left_wrist = compute_wrist_state(
                         left_hand,
                         "Left",
                         left_hand_base_roll,
                         left_hand_base_pitch,
                     )
+                    left_wrist = wrist_smoother.update(raw_left_wrist)
             else:
-                cv2.putText(image, "Left Hand not detected", (20, image.shape[0] - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                wrist_smoother.reset()
+                grab_debouncer.reset()
 
             left_wrist_lr = left_wrist["roll_direction"] if left_wrist else "Not calibrated"
             left_wrist_ud = left_wrist["pitch_direction"] if left_wrist else "Not calibrated"
+
+            if left_state is not None:
+                summary_lines = [
+                    f"Grab: {left_grab}",
+                    f"LR: {left_wrist_lr}",
+                    f"UD: {left_wrist_ud}"
+                ]
+
+                for i, line in enumerate(summary_lines):
+                    cv2.putText(
+                        image,
+                        line,
+                        (20, 40 + i * 35),   # top-left position
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.8,
+                        (255, 255, 255),
+                        2
+                    )
             right_xyz_text = (
-                f"{right_xyz['x']}, {right_xyz['y']}, {right_xyz['z']}"
+                f"{format_display_number(right_xyz['x'])}, "
+                f"{format_display_number(right_xyz['y'])}, "
+                f"{format_display_number(right_xyz['z'])}"
                 if right_xyz is not None
                 else "No hand"
             )
-
-            summary_lines = [
-                f"Left Hand | Grab: {left_grab}",
-                f"Left Wrist | LR: {left_wrist_lr} | UD: {left_wrist_ud}",
-                f"Right Hand | XYZ: {right_xyz_text}",
-                f"Base Rotation | Left: {left_base_rotation} | Right: {right_base_rotation}",
-            ]
-            draw_top_summary(image, summary_lines)
-
-            if left_hand_base_roll is None or left_hand_base_pitch is None:
-                cv2.putText(image, "Press 'b' to set left wrist base", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-            else:
-                cv2.putText(image, "b = reset left wrist base", (20, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-
-            if right_hand_z_base is None:
-                cv2.putText(image, "Press 'r' to set right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-            else:
-                cv2.putText(image, "r = reset right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+            base_rotation_zone_owners = resolve_base_rotation_zone_owners(
+                base_rotation_zone_owners,
+                {
+                    "right_hand": right_base_rotation,
+                    "left_hand": left_base_rotation,
+                },
+            )
+            active_base_rotation_zones = get_active_base_rotation_zones(base_rotation_zone_owners)
+            combined_base_rotation = get_combined_base_rotation_output(
+                base_rotation_zone_owners,
+                {
+                    "right_hand": right_base_rotation,
+                    "left_hand": left_base_rotation,
+                },
+            )
+            draw_base_rotation_indicators(active_base_rotation_zones, image)
 
             terminal_state = {
                 "left_hand": {
@@ -489,18 +654,46 @@ def main():
                         "up_down": left_wrist["pitch_direction"] if left_wrist else "Not calibrated",
                         "left_right_rotation": left_wrist["roll_direction"] if left_wrist else "Not calibrated",
                     },
-                    "base_rotation": left_base_rotation,
                 },
                 "right_hand": {
-                    "xyz": right_xyz,
-                    "base_rotation": right_base_rotation,
+                    "xyz": format_xyz_payload(right_xyz),
                 },
+                # Raw (pre-smoothing) values for debugging and tuning.
+                # Suppress with: export LOG_RAW=false
+                "raw": {
+                    "right_hand": {"xyz": raw_right_xyz},
+                    "left_hand": {
+                        "grab": raw_left_grab,
+                        "wrist": {
+                            "up_down": raw_left_wrist["pitch_direction"] if raw_left_wrist else "Not calibrated",
+                            "left_right_rotation": raw_left_wrist["roll_direction"] if raw_left_wrist else "Not calibrated",
+                            "roll_delta": round(raw_left_wrist["roll_delta"], 2) if raw_left_wrist else None,
+                            "pitch_delta": round(raw_left_wrist["pitch_delta"], 2) if raw_left_wrist else None,
+                        },
+                    },
+                } if os.getenv("LOG_RAW", "true").lower() != "false" else None,
+                "base_rotation": combined_base_rotation,
             }
-            print(json.dumps(terminal_state), flush=True)
+            now = time.monotonic()
+            if (
+                terminal_stream_interval == 0.0 or
+                now - last_terminal_stream_at >= terminal_stream_interval
+            ):
+                print(json.dumps(terminal_state), flush=True)
+                last_terminal_stream_at = now
 
             if not headless:
+                cv2.putText(
+                    image,
+                    f"{format_terminal_stream_rate(terminal_stream_interval)} | [: slower  ]: faster",
+                    (20, image.shape[0] - 20),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.55,
+                    (255, 255, 255),
+                    2,
+                )
                 cv2.imshow("Aether Main2", image)
-                key = cv2.waitKey(1) & 0xFF
+                key = cv2.waitKeyEx(1)
 
                 if key == 27:
                     break
@@ -515,6 +708,10 @@ def main():
                         True,
                         right_hand_z_base,
                     )
+                if is_stream_rate_increase_key(key):
+                    terminal_stream_interval = adjust_terminal_stream_interval(terminal_stream_interval, 1)
+                if is_stream_rate_decrease_key(key):
+                    terminal_stream_interval = adjust_terminal_stream_interval(terminal_stream_interval, -1)
 
         return 0
     except KeyboardInterrupt:
