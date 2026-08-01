@@ -10,7 +10,8 @@
 
 import math
 
-def solve_ik(z, y, L1, L2, elbow_up, debug):
+
+def solve_ik(z, y, L1, L2, elbow_up=True, debug=False):
     """
     Solves 2-D inverse kinematics
 
@@ -19,6 +20,9 @@ def solve_ik(z, y, L1, L2, elbow_up, debug):
     L1 = shoulder-to-elbow link length
     L2 = elbow-to-wrist/end-effector link length
     """
+
+    if L1 <= 0 or L2 <= 0:
+        raise ValueError("Link lengths must be positive")
 
     # calculate r
     r = math.sqrt(z**2 + y**2)
@@ -87,11 +91,19 @@ def solve_ik(z, y, L1, L2, elbow_up, debug):
     }
 
 ## TESTING VALUES (manual input, for now)
-z = 9
-y = 10
-L1 = L2 = 10
-elbow_up = True
-debug = True # turn debug mode on/off, allowing you to see print statements w/values
+## z = 9
+## y = 10
+## L1 = L2 = 10
+## elbow_up = True
+## debug = True # turn debug mode on/off, allowing you to see print statements w/values
 
-result = solve_ik(z,y,L1,L2,elbow_up,debug)
-print(result)
+if __name__ == "__main__":
+    result = solve_ik(
+        z=9,
+        y=10,
+        L1=10,
+        L2=10,
+        elbow_up=True,
+        debug=True,
+    )
+    print(result)
