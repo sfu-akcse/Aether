@@ -257,52 +257,73 @@ def extract_z_coordinate_for_hand(image, hand_landmarks, z_reset_flag, base_valu
     return max(0, z_offset), base_value, (min_x, min_y, max_x, max_y)
 
 
-def calibrate_z_side(hand_landmarks) -> float:
-    """
-    Save the current wrist depth as the Z = 0 base point for side-view detection.
+def _palm_width_px(image, hand_landmarks) -> float:
+    """Pixel distance between landmarks 5 (index MCP) and 17 (pinky MCP).
 
-    MediaPipe landmark.z is a depth value in roughly the same scale as landmark.x.
-    Call this once when the user signals their neutral hand position (e.g. on key press).
+    This grows as the hand moves toward the camera and shrinks as it moves
+    away, so it works as a depth proxy for a single, front-facing monocular
+    camera. hand_landmarks[0].z (wrist depth) can't be used for this because
+    MediaPipe defines landmark z relative to the wrist itself, so the
+    wrist's own z is always ~0 regardless of the hand's real distance from
+    the camera.
+    """
+    h, w, _ = image.shape
+    p_index_mcp = hand_landmarks[5]
+    p_pinky_mcp = hand_landmarks[17]
+    dx = (p_index_mcp.x - p_pinky_mcp.x) * w
+    dy = (p_index_mcp.y - p_pinky_mcp.y) * h
+    return (dx ** 2 + dy ** 2) ** 0.5
+
+
+def calibrate_z_side(image, hand_landmarks) -> float:
+    """
+    Save the current palm width (pixels) as the Z = 0 base point for
+    side-view detection.
+
+    Call this once when the user signals their neutral hand position
+    (e.g. on key press).
 
     Args:
+        image:          OpenCV BGR frame (needed to convert the normalized
+                         landmarks into a pixel distance).
         hand_landmarks: list of 21 NormalizedLandmark objects from MediaPipe.
 
     Returns:
-        The wrist landmark.z value to store as base_z.
+        The current palm-width value (pixels) to store as base_width.
     """
-    return hand_landmarks[0].z  # index 0 = wrist
+    return _palm_width_px(image, hand_landmarks)
 
 
-# How many normalized landmark units map to a Z output of 100.
-# Decrease to make Z more sensitive, increase to reduce sensitivity.
-Z_SIDE_FULL_SCALE = 0.3
+# How many pixels of palm-width change (relative to the calibrated base)
+# map to a Z output of 100. Tune by printing the delta for your own
+# camera/setup and moving your hand to the near/far limits you want to
+# represent.
+Z_SIDE_FULL_SCALE_PX = 80.0
 
 
-def extract_z_side(hand_landmarks, base_z: float | None) -> int | None:
+def extract_z_side(image, hand_landmarks, base_width: float | None) -> int | None:
     """
-    Compute the Z offset from the saved base point using wrist depth.
+    Compute the Z offset from the saved base point using palm width.
 
-    Unlike extract_z_coordinate_for_hand() (which uses palm bounding-box area),
-    this function uses the wrist landmark's depth value to detect actual
-    forward/backward movement:
-        positive → hand moved toward the camera (forward)
-        negative → hand moved away from the camera (backward)
-        None     → base point not yet set
+    positive → hand moved toward the camera (forward, palm looks bigger)
+    negative → hand moved away from the camera (backward, palm looks smaller)
+    None     → base point not yet set
 
     Args:
+        image:          OpenCV BGR frame.
         hand_landmarks: list of 21 NormalizedLandmark objects from MediaPipe.
-        base_z:         value returned by calibrate_z_side(). None if not yet set.
+        base_width:     value returned by calibrate_z_side(). None if not yet set.
 
     Returns:
-        Integer Z value (roughly -100 to +100), or None if not calibrated.
+        Integer Z value clamped to -100..100, or None if not calibrated.
     """
-    if base_z is None:
+    if base_width is None:
         return None
 
-    # MediaPipe z is negative toward the camera, so negate so that
-    # moving toward camera = positive Z (matches XY convention).
-    delta = -(hand_landmarks[0].z - base_z)
-    return int((delta / Z_SIDE_FULL_SCALE) * 100)
+    current_width = _palm_width_px(image, hand_landmarks)
+    delta = current_width - base_width
+    z_value = int((delta / Z_SIDE_FULL_SCALE_PX) * 100)
+    return max(-100, min(100, z_value))
 
 
 def draw_z_side_overlay(image, z_value, hand_landmarks) -> object:
