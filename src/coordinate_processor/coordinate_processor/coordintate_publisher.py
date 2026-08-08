@@ -261,9 +261,9 @@ class CoordinatePublisher(Node):
             cv2.putText(image, "r = reset right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
 
         if self.right_hand_z_side_base is None:
-            cv2.putText(image, "Press 'z' to set right-hand Z (side)=0", (400, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+            cv2.putText(image, "Press 'z' to set right-hand Z (side)=0", (320, image.shape[0] - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
         else:
-            cv2.putText(image, "z = reset right-hand Z (side)=0", (400, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+            cv2.putText(image, "z = reset right-hand Z (side)=0", (320, image.shape[0] - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
 
         # Terminal State replacement
         if self.right_xyz is not None:
