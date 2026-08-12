@@ -32,7 +32,10 @@ from .hand_tracker import (
     get_hand_label_position,
     draw_hand_name,
     draw_top_summary,
-    HAND_CONNECTIONS
+    HAND_CONNECTIONS,
+    calibrate_z_side,
+    extract_z_side,
+    draw_z_side_overlay,
 )
 
 class CoordinatePublisher(Node):
@@ -100,6 +103,7 @@ class CoordinatePublisher(Node):
         self.placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
 
         self.right_hand_z_base = None
+        self.right_hand_z_side_base = None
         self.left_hand_base_roll = None
         self.left_hand_base_pitch = None
 
@@ -201,6 +205,11 @@ class CoordinatePublisher(Node):
                 base_rotation_x(self.right_xyz, image)
 
             image = draw_z_overlay(image, right_z, right_z_box)
+
+            right_z_side = extract_z_side(image, right_hand, self.right_hand_z_side_base)
+            image = draw_z_side_overlay(image, right_z_side, right_hand)
+            if self.right_xyz is not None and right_z_side is not None:
+                self.right_xyz["z_side"] = right_z_side
         else:
             cv2.putText(image, "Right Hand not detected", (20, image.shape[0] - 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
@@ -251,6 +260,11 @@ class CoordinatePublisher(Node):
         else:
             cv2.putText(image, "r = reset right-hand Z=0", (320, image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
 
+        if self.right_hand_z_side_base is None:
+            cv2.putText(image, "Press 'z' to set right-hand Z (side)=0", (320, image.shape[0] - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+        else:
+            cv2.putText(image, "z = reset right-hand Z (side)=0", (320, image.shape[0] - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+
         # Terminal State replacement
         if self.right_xyz is not None:
             msg.x = float(self.right_xyz['x'])
@@ -272,6 +286,9 @@ class CoordinatePublisher(Node):
             if key == ord("b") and left_state is not None:
                 left_hand = left_state.landmarks
                 self.left_hand_base_roll, self.left_hand_base_pitch = calibrate_wrist_base(left_hand, "Left")
+            if key == ord("z") and right_state is not None:
+                right_hand = right_state.landmarks
+                self.right_hand_z_side_base = calibrate_z_side(image, right_hand)
             if key == ord("r") and right_state is not None:
                 right_hand = right_state.landmarks
                 _, self.right_hand_z_base, _ = extract_z_coordinate_for_hand(
