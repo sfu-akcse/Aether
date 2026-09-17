@@ -90,6 +90,38 @@ def solve_ik(z, y, L1, L2, elbow_up=True, debug=False):
         "theta2_deg": theta2_deg,
     }
 
+def forward_kinematics(theta1, theta2, L1, L2):
+    """
+    Calculates the end-effector position from joint angles.
+
+    Coordinate plane:
+        z = forward/back
+        y = up/down
+
+    theta1 = shoulder angle in radians
+    theta2 = elbow angle in radians
+    L1 = shoulder-to-elbow link length
+    L2 = elbow-to-end-effector link length
+
+    Returns:
+        z, y
+    """
+
+    if L1 <= 0 or L2 <= 0:
+        raise ValueError("Link lengths must be positive")
+
+    z = (
+        L1 * math.cos(theta1)
+        + L2 * math.cos(theta1 + theta2)
+    )
+
+    y = (
+        L1 * math.sin(theta1)
+        + L2 * math.sin(theta1 + theta2)
+    )
+
+    return z, y
+
 ## TESTING VALUES (manual input, for now)
 ## z = 9
 ## y = 10
