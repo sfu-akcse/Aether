@@ -2,10 +2,6 @@
 #
 # Converts theoretical joint angles in degrees
 # into ST3215 servo position counts.
-#
-# NOTE:
-# center and direction are provisional until
-# the physical robot arm can be assembled/calibrated.
 
 SERVO_COUNTS_PER_REV = 4096
 DEGREES_PER_REV = 360.0
@@ -14,13 +10,26 @@ COUNTS_PER_DEGREE = (
     SERVO_COUNTS_PER_REV / DEGREES_PER_REV
 )
 
-# servo theoretical range is 0-4095, but the physical servo
-# may not be able to reach the full range.  The physical
-# limits will be determined after the robot arm is assembled and calibrated.
+# ST3215 theoretical position range
 SERVO_MIN_POSITION = 0
 SERVO_MAX_POSITION = 4095
 
-# values may need to change after the physical robot arm is assembled and calibrated
+
+# --------------------------------------------------
+# Physical Aether prototype calibration
+# --------------------------------------------------
+
+SHOULDER_CENTER = 2030
+SHOULDER_DIRECTION = +1
+SHOULDER_MIN = 2030
+SHOULDER_MAX = 4000
+
+ELBOW_CENTER = 2085
+ELBOW_DIRECTION = -1
+ELBOW_MIN = 950
+ELBOW_MAX = 3150
+
+
 def angle_to_servo_position(
     angle_deg,
     center=2047,
@@ -29,37 +38,34 @@ def angle_to_servo_position(
     max_position=SERVO_MAX_POSITION,
 ):
     """
-    Convert a joint angle in degrees to an ST3215 position.
+    Convert a theoretical joint angle in degrees
+    to an ST3215 servo position.
 
     angle_deg:
-        The theoretical joint angle.
+        Joint angle in degrees.
 
     center:
         Servo position corresponding to 0 degrees.
-        Currently assumed to be 2047.
 
     direction:
         +1 = positive angle increases servo count
         -1 = positive angle decreases servo count
 
     min_position / max_position:
-        Allowed servo position range.
+        Allowed servo command range.
 
     Returns:
         Integer servo position.
     """
 
     if direction not in (-1, 1):
-        raise ValueError("direction must be +1 or -1")
+        raise ValueError(
+            "direction must be +1 or -1"
+        )
 
     if min_position > max_position:
         raise ValueError(
             "min_position cannot be greater than max_position"
-        )
-
-    if center < min_position or center > max_position:
-        raise ValueError(
-            "center must be inside the allowed servo range"
         )
 
     position = round(
@@ -69,7 +75,6 @@ def angle_to_servo_position(
         * COUNTS_PER_DEGREE
     )
 
-    # check final position is within allowed range
     if position < min_position or position > max_position:
         raise ValueError(
             f"Calculated servo position {position} "
@@ -79,7 +84,7 @@ def angle_to_servo_position(
 
     return position
 
-# convert servo position back to theoretical joint angle in degrees
+
 def servo_position_to_angle(
     position,
     center=2047,
@@ -91,7 +96,9 @@ def servo_position_to_angle(
     """
 
     if direction not in (-1, 1):
-        raise ValueError("direction must be +1 or -1")
+        raise ValueError(
+            "direction must be +1 or -1"
+        )
 
     if position < SERVO_MIN_POSITION or position > SERVO_MAX_POSITION:
         raise ValueError(
@@ -105,3 +112,33 @@ def servo_position_to_angle(
     )
 
     return angle_deg
+
+
+def shoulder_angle_to_position(angle_deg):
+    """
+    Convert a theoretical shoulder angle to the
+    calibrated Aether shoulder servo position.
+    """
+
+    return angle_to_servo_position(
+        angle_deg,
+        center=SHOULDER_CENTER,
+        direction=SHOULDER_DIRECTION,
+        min_position=SHOULDER_MIN,
+        max_position=SHOULDER_MAX,
+    )
+
+
+def elbow_angle_to_position(angle_deg):
+    """
+    Convert a theoretical elbow angle to the
+    calibrated Aether elbow servo position.
+    """
+
+    return angle_to_servo_position(
+        angle_deg,
+        center=ELBOW_CENTER,
+        direction=ELBOW_DIRECTION,
+        min_position=ELBOW_MIN,
+        max_position=ELBOW_MAX,
+    )

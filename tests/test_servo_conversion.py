@@ -4,6 +4,8 @@ import pytest
 from servo_conversion import (
     angle_to_servo_position,
     servo_position_to_angle,
+    shoulder_angle_to_position,
+    elbow_angle_to_position,
 )
 
 
@@ -84,6 +86,7 @@ def test_invalid_position_range():
         90,
     ],
 )
+
 def test_angle_position_round_trip(angle):
     position = angle_to_servo_position(angle)
 
@@ -98,3 +101,32 @@ def test_angle_position_round_trip(angle):
         angle,
         abs_tol=0.05,
     )
+
+def test_calibrated_shoulder_zero():
+    assert shoulder_angle_to_position(0) == 2030
+
+
+def test_calibrated_elbow_zero():
+    assert elbow_angle_to_position(0) == 2085
+
+
+def test_calibrated_shoulder_90_degrees():
+    assert shoulder_angle_to_position(90) == 3054
+
+
+def test_calibrated_elbow_positive_90():
+    assert elbow_angle_to_position(90) == 1061
+
+
+def test_calibrated_elbow_negative_90():
+    assert elbow_angle_to_position(-90) == 3109
+
+
+def test_shoulder_rejects_negative_angle():
+    with pytest.raises(ValueError):
+        shoulder_angle_to_position(-10)
+
+
+def test_elbow_rejects_angle_outside_safe_range():
+    with pytest.raises(ValueError):
+        elbow_angle_to_position(120)   
