@@ -1,5 +1,9 @@
 from ik_solver import solve_ik
-from servo_conversion import (shoulder_angle_to_position, elbow_angle_to_position,)
+
+from servo_conversion import (
+    shoulder_angle_to_position,
+    elbow_angle_to_position,
+)
 
 
 NEGATIVE_ELBOW = "negative_elbow"
@@ -14,16 +18,14 @@ def _calculate_candidate(
     branch,
 ):
     """
-    Calculate one IK branch and check whether it fits
-    within the calibrated physical servo limits.
+    Calculate one IK branch and determine whether
+    it satisfies the calibrated physical joint limits.
     """
 
     if branch == NEGATIVE_ELBOW:
-        # solve_ik() uses negative theta2 when elbow_up=True
         elbow_up = True
 
     elif branch == POSITIVE_ELBOW:
-        # solve_ik() uses positive theta2 when elbow_up=False
         elbow_up = False
 
     else:
@@ -40,7 +42,6 @@ def _calculate_candidate(
         elbow_up=elbow_up,
     )
 
-    # Geometrically unreachable targets cannot have a valid hardware solution
     if not ik_result["reachable"]:
         return {
             "branch": branch,
@@ -63,10 +64,7 @@ def _calculate_candidate(
 
     errors = []
 
-    # --------------------------------------------------
-    # Check shoulder against calibrated hardware limits
-    # --------------------------------------------------
-
+    # Check shoulder limits
     try:
         shoulder_position = (
             shoulder_angle_to_position(
@@ -79,10 +77,7 @@ def _calculate_candidate(
             f"Shoulder limit: {error}"
         )
 
-    # --------------------------------------------------
-    # Check elbow against calibrated hardware limits
-    # --------------------------------------------------
-
+    # Check elbow limits
     try:
         elbow_position = (
             elbow_angle_to_position(
@@ -107,31 +102,56 @@ def _calculate_candidate(
     }
 
 
+def _movement_cost(
+    solution,
+    current_shoulder_position,
+    current_elbow_position,
+):
+    """
+    Estimate how much servo movement is required
+    to reach an IK solution.
+
+    Lower cost = less total servo movement.
+    """
+
+    shoulder_difference = abs(
+        solution["shoulder_servo_position"]
+        - current_shoulder_position
+    )
+
+    elbow_difference = abs(
+        solution["elbow_servo_position"]
+        - current_elbow_position
+    )
+
+    return (
+        shoulder_difference
+        + elbow_difference
+    )
+
+
 def target_to_servo_positions(
     z,
     y,
     L1,
     L2,
     preferred_branch=POSITIVE_ELBOW,
+    current_shoulder_position=None,
+    current_elbow_position=None,
 ):
     """
     Convert a target position into a physically valid
     robot-arm configuration.
 
-    Both 2-link IK branches are calculated:
+    Both IK branches are calculated and checked
+    against the calibrated joint limits.
 
-        negative_elbow -> theta2 < 0
-        positive_elbow -> theta2 > 0
+    If current servo positions are provided and both
+    branches are valid, the branch requiring the
+    least servo movement is selected.
 
-    Each branch is checked against the calibrated
-    shoulder and elbow servo limits.
-
-    If both are valid, preferred_branch is selected.
-
-    If only one is valid, that branch is selected
-    automatically.
-
-    If neither is valid, reachable=False.
+    If current positions are not provided, the
+    preferred branch is used when possible.
     """
 
     if preferred_branch not in (
@@ -141,6 +161,18 @@ def target_to_servo_positions(
         raise ValueError(
             "preferred_branch must be "
             "'negative_elbow' or 'positive_elbow'"
+        )
+
+    # Either provide BOTH current positions or neither.
+    if (
+        (current_shoulder_position is None)
+        !=
+        (current_elbow_position is None)
+    ):
+        raise ValueError(
+            "current_shoulder_position and "
+            "current_elbow_position must either "
+            "both be provided or both be None"
         )
 
     negative_solution = _calculate_candidate(
@@ -164,15 +196,13 @@ def target_to_servo_positions(
         POSITIVE_ELBOW: positive_solution,
     }
 
-    # --------------------------------------------------
-    # Target is outside the basic 2-link workspace
-    # --------------------------------------------------
-
+    # Target outside basic geometric workspace
     if not negative_solution["geometrically_reachable"]:
         return {
             "reachable": False,
             "geometrically_reachable": False,
             "selected_branch": None,
+            "selection_reason": None,
             "shoulder_angle_deg": None,
             "elbow_angle_deg": None,
             "shoulder_servo_position": None,
@@ -184,21 +214,20 @@ def target_to_servo_positions(
             "solutions": solutions,
         }
 
-    # --------------------------------------------------
-    # Determine which hardware-valid branches exist
-    # --------------------------------------------------
-
     valid_branches = [
         branch
         for branch, solution in solutions.items()
         if solution["valid"]
     ]
 
+    # Geometrically reachable, but hardware cannot
+    # safely perform either configuration.
     if not valid_branches:
         return {
             "reachable": False,
             "geometrically_reachable": True,
             "selected_branch": None,
+            "selection_reason": None,
             "shoulder_angle_deg": None,
             "elbow_angle_deg": None,
             "shoulder_servo_position": None,
@@ -212,16 +241,63 @@ def target_to_servo_positions(
         }
 
     # --------------------------------------------------
-    # Prefer requested branch if it is physically valid
-    #
-    # Otherwise automatically fall back to the other valid solution
+    # Only one physical solution exists
     # --------------------------------------------------
 
-    if preferred_branch in valid_branches:
-        selected_branch = preferred_branch
+    if len(valid_branches) == 1:
+        selected_branch = valid_branches[0]
+
+        selection_reason = (
+            "Only one IK branch satisfies "
+            "the calibrated joint limits."
+        )
+
+    # --------------------------------------------------
+    # Both physical solutions exist
+    # --------------------------------------------------
 
     else:
-        selected_branch = valid_branches[0]
+        # If we know the current pose, choose the
+        # solution requiring the least movement.
+        if current_shoulder_position is not None:
+
+            negative_cost = _movement_cost(
+                negative_solution,
+                current_shoulder_position,
+                current_elbow_position,
+            )
+
+            positive_cost = _movement_cost(
+                positive_solution,
+                current_shoulder_position,
+                current_elbow_position,
+            )
+
+            if negative_cost < positive_cost:
+                selected_branch = NEGATIVE_ELBOW
+
+            elif positive_cost < negative_cost:
+                selected_branch = POSITIVE_ELBOW
+
+            else:
+                # Exact tie: use configured preference.
+                selected_branch = preferred_branch
+
+            selection_reason = (
+                "Both IK branches are valid; "
+                "selected the solution requiring "
+                "the least servo movement."
+            )
+
+        else:
+            # No current pose available yet.
+            selected_branch = preferred_branch
+
+            selection_reason = (
+                "Both IK branches are valid; "
+                "no current pose was provided, "
+                "so preferred_branch was used."
+            )
 
     selected = solutions[selected_branch]
 
@@ -229,6 +305,7 @@ def target_to_servo_positions(
         "reachable": True,
         "geometrically_reachable": True,
         "selected_branch": selected_branch,
+        "selection_reason": selection_reason,
         "shoulder_angle_deg": (
             selected["shoulder_angle_deg"]
         ),
@@ -248,10 +325,12 @@ def target_to_servo_positions(
 
 if __name__ == "__main__":
     result = target_to_servo_positions(
-        z=10,
-        y=10,
-        L1=10,
-        L2=10,
+        z=120,
+        y=100,
+        L1=135,
+        L2=85,
+        current_shoulder_position=2598,
+        current_elbow_position=3002,
     )
 
     print(result)

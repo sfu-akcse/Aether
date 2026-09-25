@@ -144,3 +144,49 @@ def test_invalid_preferred_branch():
             L2=10,
             preferred_branch="banana",
         )
+
+def test_continuity_prefers_closest_negative_branch():
+    result = target_to_servo_positions(
+        z=120,
+        y=100,
+        L1=135,
+        L2=85,
+        current_shoulder_position=2598,
+        current_elbow_position=3002,
+    )
+
+    assert result["reachable"] is True
+
+    assert (
+        result["selected_branch"]
+        == NEGATIVE_ELBOW
+    )
+
+
+def test_continuity_prefers_closest_positive_branch():
+    result = target_to_servo_positions(
+        z=120,
+        y=100,
+        L1=135,
+        L2=85,
+        current_shoulder_position=2100,
+        current_elbow_position=1050,
+    )
+
+    assert result["reachable"] is True
+
+    assert (
+        result["selected_branch"]
+        == POSITIVE_ELBOW
+    )
+
+
+def test_current_positions_must_be_provided_together():
+    with pytest.raises(ValueError):
+        target_to_servo_positions(
+            z=120,
+            y=100,
+            L1=135,
+            L2=85,
+            current_shoulder_position=2100,
+        )
